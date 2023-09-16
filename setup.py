@@ -7,11 +7,11 @@ with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
 setuptools.setup(
-    name="FastUtils",
+    name="FastUtils_hmarcuzzo",
     version="0.0.1",  # The initial release version
     author="Henrique Marcuzzo",  # Full name of the author
     description="A personal utility library I've developed to streamline and optimize backend development with FastAPI in my projects. "
-    "From generic repositories and queries to enums, error handling, and more, FastUtils encompasses essential tools "
+    "From generic repositories and queries to enums, error handling, and more, FastUtils_hmarcuzzo encompasses essential tools "
     "that have proven invaluable in my development journey, whether as a novice or a seasoned professional.",
     long_description=long_description,
     long_description_content_type="text/markdown",

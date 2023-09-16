@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from src.common.database.sqlalchemy.session import get_session
+from src.fastutils_hmarcuzzo.common.database.sqlalchemy.session import get_session
 
 
 def get_db(database_url: str) -> Session:

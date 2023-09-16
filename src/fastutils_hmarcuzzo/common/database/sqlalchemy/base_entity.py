@@ -7,7 +7,7 @@ from sqlalchemy import Column, DateTime, event
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy_utils import UUIDType
 
-from src.fastutils_hmarcuzzo.common.database.sqlalchemy.base import Base
+from fastutils_hmarcuzzo.common.database.sqlalchemy.base import Base
 
 
 @dataclass

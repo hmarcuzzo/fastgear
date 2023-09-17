@@ -2,8 +2,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 
-def get_session(database_url: str, app_tz: str = "UTC") -> Session:
-    engine = create_engine(database_url, connect_args={"options": f"-c timezone={app_tz}"})
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+class GetSession:
+    def __init__(self, database_url: str, app_tz: str = "UTC"):
+        self.engine = create_engine(database_url, connect_args={"options": f"-c timezone={app_tz}"})
+        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
 
-    return SessionLocal()
+    def get_session(self) -> Session:
+        return self.SessionLocal()

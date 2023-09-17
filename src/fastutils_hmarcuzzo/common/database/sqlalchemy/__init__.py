@@ -4,7 +4,7 @@ from fastutils_hmarcuzzo.common.database.sqlalchemy.session import DatabaseSessi
 
 
 class DatabaseSessionManager:
-    def __int__(self, database_url: str, app_tz: str = "UTC"):
+    def __init__(self, database_url: str, app_tz: str = "UTC"):
         self.session_factory = DatabaseSessionFactory(database_url, app_tz)
 
     def get_db(self) -> Session:

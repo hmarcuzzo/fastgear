@@ -1,11 +1,15 @@
 from sqlalchemy.orm import Session
 
-from fastutils_hmarcuzzo.common.database.sqlalchemy.session import get_session
+from fastutils_hmarcuzzo.common.database.sqlalchemy.session import GetSession
 
 
-def get_db(database_url: str, app_tz: str = "UTC") -> Session:
-    db: Session = get_session(database_url, app_tz)
-    try:
-        yield db
-    finally:
-        db.close()
+class GetDB:
+    def __int__(self, database_url: str, app_tz: str = "UTC"):
+        self.session = GetSession(database_url, app_tz)
+
+    def get_db(self) -> Session:
+        db: Session = self.session.get_session()
+        try:
+            yield db
+        finally:
+            db.close()

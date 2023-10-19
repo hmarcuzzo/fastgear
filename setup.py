@@ -4,11 +4,12 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 with open("requirements.txt") as f:
-    requirements = f.read().splitlines()
+    lines = f.read().splitlines()
+    requirements = lines[1:] if lines[0] == "-i https://pypi.org/simple" else lines
 
 setuptools.setup(
     name="fastutils_hmarcuzzo",
-    version="0.1.3",  # The initial release version
+    version="0.2.6",  # The initial release version
     author="Henrique Marcuzzo",  # Full name of the author
     description="A personal utility library I've developed to streamline and optimize backend development with FastAPI in my projects. "
     "From generic repositories and queries to enums, error handling, and more, fastutils_hmarcuzzo encompasses essential tools "

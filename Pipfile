@@ -4,12 +4,15 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sqlalchemy = "*"
-passlib = "*"
-pydantic = "*"
-sqlalchemy-utils = "*"
+sqlalchemy = ">=2.0"
+passlib = ">=1.7"
+pydantic = ">=2.3.0"
+sqlalchemy-utils = ">=0.40"
+starlette = ">=0.27"
+fastapi = "*"
 
 [dev-packages]
+black = ">=23.10"
 
 [requires]
 python_version = "3.10"

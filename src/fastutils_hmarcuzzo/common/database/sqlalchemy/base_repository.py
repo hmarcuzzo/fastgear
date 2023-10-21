@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Optional, List, Tuple
+from typing import Generic, TypeVar, List, Tuple
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -89,7 +89,7 @@ class BaseRepository(Generic[T]):
         db: Session,
         search_filter: str | FindOneOptions,
         model_data: BaseModel | dict,
-    ) -> Optional[UpdateResult]:
+    ) -> UpdateResult:
         record = await self.find_one_or_fail(db, search_filter)
 
         if isinstance(model_data, BaseModel):
@@ -101,9 +101,7 @@ class BaseRepository(Generic[T]):
         db.flush() if db.transaction.nested else db.commit()
         return UpdateResult(raw=[], affected=1, generatedMaps=[])
 
-    async def delete(
-        self, db: Session, search_filter: str | FindOneOptions
-    ) -> Optional[DeleteResult]:
+    async def delete(self, db: Session, search_filter: str | FindOneOptions) -> DeleteResult:
         record = await self.find_one_or_fail(db, search_filter)
 
         db.delete(record)

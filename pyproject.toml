@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "fastutils-hmarcuzzo"
+version = "0.3.20"
+description = "A personal utility library I've developed to streamline and optimize backend development with FastAPI in my projects. From generic repositories and queries to enums, error handling, and more, fastutils_hmarcuzzo encompasses essential tools that have proven invaluable in my development journey, whether as a novice or a seasoned professional."
+authors = ["hmarcuzzo <henrique.souza.m06@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+sqlalchemy = "^2.0.22"
+passlib = "^1.7.4"
+pydantic = "^2.4.2"
+sqlalchemy-utils = "^0.41.1"
+starlette = "^0.27.0"
+fastapi = "^0.104.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.10.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

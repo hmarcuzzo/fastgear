@@ -19,7 +19,7 @@ from fastutils_hmarcuzzo.types.exceptions import (
     UnauthorizedException,
     ForbiddenException,
 )
-from fastutils_hmarcuzzo.utils.json import JsonUtils
+from fastutils_hmarcuzzo.utils.json_utils import JsonUtils
 
 
 class HttpExceptionsHandler:

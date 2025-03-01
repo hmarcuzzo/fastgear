@@ -1,10 +1,12 @@
-from typing import Any, List, TypedDict, Optional
+from typing import Any
 
 from sqlalchemy import BinaryExpression
+from typing_extensions import TypedDict
 
 
 class FindOneOptions(TypedDict, total=False):
-    select: List[str]
-    where: Optional[Any | BinaryExpression]
+    select: list[str]
+    where: Any | BinaryExpression | None
     order_by: Any
     relations: Any
+    having: list[Any]

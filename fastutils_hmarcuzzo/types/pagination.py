@@ -1,4 +1,4 @@
-from typing import TypedDict, List
+from typing_extensions import TypedDict
 
 
 class PaginationSearch(TypedDict):
@@ -14,5 +14,5 @@ class PaginationSort(TypedDict):
 class Pagination(TypedDict):
     skip: int
     take: int
-    sort: List[PaginationSort]
-    search: List[PaginationSearch]
+    sort: list[PaginationSort]
+    search: list[PaginationSearch]

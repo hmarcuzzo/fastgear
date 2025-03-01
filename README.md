@@ -1,10 +1,3 @@
-<style>
-    .md-typeset h1,
-    .md-content__button {
-        display: none;
-    }
-</style>
-
 <p align="center" markdown=1>
   <i>Python library for FastAPI, boosting SQLAlchemy and Redis with pagination, error handling, and session management.</i>
 </p>

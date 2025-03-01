@@ -1,7 +1,9 @@
-from typing import Any, TypedDict
+from typing import Any
+
+from typing_extensions import TypedDict
 
 
 class UpdateResult(TypedDict):
     raw: Any
     affected: int
-    generatedMaps: Any
+    generated_maps: Any

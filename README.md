@@ -52,3 +52,7 @@ Run the following command:
 ```sh
 poetry add fastutils-hmarcuzzo
 ```
+
+## License
+
+This project is licensed under the terms of the MIT license.

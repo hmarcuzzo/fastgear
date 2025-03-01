@@ -1,15 +1,26 @@
 from datetime import date, datetime
 
-from fastutils_hmarcuzzo.common.dto.exception_response_dto import DetailResponseDto
+from fastutils_hmarcuzzo.common.schema.exception_response_schema import DetailResponseSchema
 
 
 class JsonUtils:
     @staticmethod
-    def json_serial(obj):
-        """JSON serializer for objects not serializable by default json code"""
+    def json_serial(obj: object) -> str | dict:
+        """JSON serializer for objects not serializable by default json code.
 
+        Args:
+            obj: The object to be serialized. It can be an instance of datetime, date, or DetailResponseSchema.
+
+        Returns:
+            str: The ISO format string for datetime or date objects.
+            dict: The dictionary representation for DetailResponseSchema objects.
+
+        Raises:
+            TypeError: If the object type is not serializable.
+
+        """
         if isinstance(obj, (datetime, date)):
             return obj.isoformat()
-        elif isinstance(obj, DetailResponseDto):
-            return obj.__dict__
+        if isinstance(obj, DetailResponseSchema):
+            return obj.dict()
         raise TypeError("Type %s not serializable" % type(obj))

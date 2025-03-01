@@ -1,24 +1,76 @@
-[tool.poetry]
+[project]
 name = "fastutils-hmarcuzzo"
 version = "0.4.22"
 description = "A personal utility library I've developed to streamline and optimize backend development with FastAPI in my projects. From generic repositories and queries to enums, error handling, and more, fastutils_hmarcuzzo encompasses essential tools that have proven invaluable in my development journey, whether as a novice or a seasoned professional."
-authors = ["hmarcuzzo <henrique.souza.m06@gmail.com>"]
+authors = [
+    {name = "Henrique Marcuzzo <henrique.souza.m06@gmail.com>"}
+]
+license = {text = "MIT"}
 readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "sqlalchemy (>=2.0.38,<3.0.0)",
+    "uuid6 (>=2024.7.10,<2025.0.0)",
+    "sqlalchemy-utils (>=0.41.2,<0.42.0)",
+    "pydantic (>=2.10.6,<3.0.0)",
+    "fastapi (>=0.115.10,<0.116.0)",
+    "fastapi-pagination (>=0.12.34,<0.13.0)"
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-sqlalchemy = "^2.0.22"
-passlib = "^1.7.4"
-pydantic = "^2.4.2"
-sqlalchemy-utils = "^0.41.1"
-starlette = "^0.27.0"
-fastapi = "^0.104.0"
-fastapi-pagination = "^0.12.11"
+[project.optional-dependencies]
+redis = ["redis (>=5.2.1,<6.0.0)"]
 
+
+[tool.poetry.group.dev]
+optional = true
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.10.0"
+# Code quality
+# ------------------------------------------------------------------------------
+pre-commit = "^4.1.0"
+ruff = "^0.9.9"
+
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.6.1"
+mkdocs-material = "^9.6.5"
+mkdocstrings = "^0.28.2"
+
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+
+# ==== Ruff ====
+[tool.ruff]
+fix = true
+line-length = 100
+indent-width = 4
+exclude = [
+    ".git",
+    ".ruff_cache",
+    ".venv",
+    ".vscode",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+fixable = ["ALL"]  # Fix all fixable issues
+select = ["ALL"]
+extend-select = ["I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = true
+line-ending = "auto"
+
+
+

@@ -25,7 +25,7 @@ def inject_db_parameter_decorator(cls: type[ClassType]) -> type[ClassType]:
     """
 
     def decorate_method(attr_value):
-        if isinstance(attr_value, (staticmethod, classmethod)):
+        if isinstance(attr_value, staticmethod | classmethod):
             func = attr_value.__func__
             decorated_func = inject_db_parameter_if_missing(func)
             return type(attr_value)(decorated_func)
@@ -94,5 +94,6 @@ def inject_db_parameter_if_missing(func: Callable[..., Any]) -> Callable[..., An
         if iscoroutinefunction(func):
             return await func(*args, **kwargs)
         await asyncio.to_thread(func, *args, **kwargs)
+        return None
 
     return wrapper

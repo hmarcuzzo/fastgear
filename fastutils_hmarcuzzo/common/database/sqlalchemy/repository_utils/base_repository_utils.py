@@ -17,8 +17,6 @@ class BaseRepositoryUtils:
 
         """
         return any(
-            [
-                getattr(entity, key) != value
-                for key, value in update_schema.model_dump(exclude_unset=True).items()
-            ]
+            getattr(entity, key) != value
+            for key, value in update_schema.model_dump(exclude_unset=True).items()
         )

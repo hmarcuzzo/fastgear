@@ -13,7 +13,7 @@ AllSessionType = SyncSessionType | AsyncSessionType
 
 
 class SyncDatabaseSessionFactory:
-    def __init__(self, database_url: str):
+    def __init__(self, database_url: str) -> None:
         """Initializes the DatabaseSessionFactory with the given database URL.
 
         Args:
@@ -36,7 +36,7 @@ class SyncDatabaseSessionFactory:
 
 
 class AsyncDatabaseSessionFactory:
-    def __init__(self, database_url: str):
+    def __init__(self, database_url: str) -> None:
         """Initializes the AsyncDatabaseSessionFactory with the given database URL.
 
         Args:

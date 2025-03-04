@@ -10,7 +10,7 @@ class RedisClientFactory:
 
     """
 
-    def __init__(self, redis_url: str):
+    def __init__(self, redis_url: str) -> None:
         self.pool = aioredis.ConnectionPool.from_url(redis_url)
 
     def get_client(self) -> Redis:
@@ -22,7 +22,7 @@ class RedisClientFactory:
         """
         return aioredis.Redis(connection_pool=self.pool)
 
-    async def close_pool(self):
+    async def close_pool(self) -> None:
         """Closes the connection pool asynchronously.
 
         Returns:

@@ -7,7 +7,7 @@ from fastutils_hmarcuzzo.types.generic_types_var import EntityType
 
 
 class SelectConstructor:
-    def __init__(self, entity: EntityType):
+    def __init__(self, entity: EntityType) -> None:
         self.entity = entity
 
     def build_select_statement(
@@ -58,7 +58,7 @@ class SelectConstructor:
 
         options_dict = self.__fix_options_dict(options_dict)
 
-        for key in options_dict.keys():
+        for key in options_dict:
             match key:
                 case "select":
                     select_statement = select_statement.options(

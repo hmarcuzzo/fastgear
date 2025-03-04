@@ -11,7 +11,7 @@ class SelectConstructor:
         self.entity = entity
 
     def build_select_statement(
-        self, criteria: str | FindOneOptions | FindManyOptions = None, new_entity: EntityType = None
+        self, criteria: str | FindOneOptions | FindManyOptions = None, new_entity: EntityType = None,
     ) -> Select:
         """Constructs and returns a SQLAlchemy Select statement based on the provided criteria and entity.
 
@@ -62,7 +62,7 @@ class SelectConstructor:
             match key:
                 case "select":
                     select_statement = select_statement.options(
-                        load_only(*options_dict[key], raiseload=True)
+                        load_only(*options_dict[key], raiseload=True),
                     )
                 case "where":
                     select_statement = select_statement.where(*options_dict[key])
@@ -74,7 +74,7 @@ class SelectConstructor:
                     select_statement = select_statement.limit(options_dict[key])
                 case "relations":
                     select_statement = select_statement.options(
-                        *[selectinload(getattr(entity, relation)) for relation in options_dict[key]]
+                        *[selectinload(getattr(entity, relation)) for relation in options_dict[key]],
                     )
                 case _:
                     raise KeyError(f"Unknown option: {key} in FindOptions")

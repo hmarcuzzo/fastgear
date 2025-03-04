@@ -18,7 +18,7 @@ db_session: ContextVar[Session | AsyncSession | None] = ContextVar("db_session",
 
 class BaseDBSessionDecorator:
     def __init__(
-        self, session_factory: SyncDatabaseSessionFactory | AsyncDatabaseSessionFactory
+        self, session_factory: SyncDatabaseSessionFactory | AsyncDatabaseSessionFactory,
     ) -> None:
         self.session_factory = session_factory
 

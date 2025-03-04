@@ -59,7 +59,7 @@ class PaginationWithSearchOptions(SimplePaginationOptions):
         sort: Annotated[list[SortString] | None, Query(examples=["field:by"])] = None,
         columns: Annotated[list[ColumnsString] | None, Query(examples=["field"])] = None,
         search_all: Annotated[
-            str | None, Query(pattern=f"^{REGEX_ANY_CHAR}$", examples=["value"])
+            str | None, Query(pattern=f"^{REGEX_ANY_CHAR}$", examples=["value"]),
         ] = None,
     ) -> FindManyOptions:
         """Generates pagination and search options for a given entity.
@@ -70,25 +70,25 @@ class PaginationWithSearchOptions(SimplePaginationOptions):
         Args:
             page (int, optional): The page number for pagination. Defaults to `custom_page_query`.
             size (int, optional): The number of items per page. Defaults to `custom_size_query`.
-            search (Annotated[List[SearchString] | None, Query], optional): A list of search strings in the format
-                "field:value". Defaults to None.
+            search (Annotated[List[SearchString] | None, Query], optional): A list of search
+                strings in the format "field:value". Defaults to None.
             sort (Annotated[List[SortString] | None, Query], optional): A list of sort strings in the format
                 "field:by". Defaults to None.
-            columns (Annotated[List[ColumnsString] | None, Query], optional): A list of columns to include in the result.
-                Defaults to None.
-            search_all (Annotated[str | None, Query], optional): A global search string to apply to all fields.
-                Defaults to None.
+            columns (Annotated[List[ColumnsString] | None, Query], optional): A list of columns to
+                include in the result. Defaults to None.
+            search_all (Annotated[str | None, Query], optional): A global search string to apply
+                to all fields. Defaults to None.
 
         Returns:
             FindManyOptions: An object containing the pagination and search options.
 
         """
         self.pagination_utils.validate_block_attributes(
-            self.block_attributes, search, sort, columns, search_all
+            self.block_attributes, search, sort, columns, search_all,
         )
 
         paging_params = self.pagination_utils.generate_paging_parameters(
-            page, size, search, sort, self.find_all_query, self.order_by_query
+            page, size, search, sort, self.find_all_query, self.order_by_query,
         )
 
         return self.pagination_utils.get_paging_data(

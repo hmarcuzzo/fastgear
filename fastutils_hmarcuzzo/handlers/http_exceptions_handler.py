@@ -53,7 +53,7 @@ class HttpExceptionsHandler:
                     self.global_exception_error_message(
                         status_code=exc.status_code,
                         detail=DetailResponseSchema(
-                            loc=[], msg=exc.detail, type="Starlette HTTP Exception"
+                            loc=[], msg=exc.detail, type="Starlette HTTP Exception",
                         ),
                         request=request,
                     ).dict(),
@@ -63,7 +63,7 @@ class HttpExceptionsHandler:
 
         @self.app.exception_handler(RequestValidationError)
         async def validation_exception_handler(
-            request: Request, exc: RequestValidationError
+            request: Request, exc: RequestValidationError,
         ) -> Response:
             """Handles FastAPI request validation errors and returns a formatted JSON response.
 
@@ -95,7 +95,7 @@ class HttpExceptionsHandler:
         @self.app.exception_handler(DuplicateValueException)
         @self.app.exception_handler(RateLimitException)
         async def custom_exceptions_handler(
-            request: Request, exc: CustomHTTPExceptionType
+            request: Request, exc: CustomHTTPExceptionType,
         ) -> Response:
             """Handles custom HTTP exceptions and returns a formatted JSON response.
 
@@ -179,7 +179,7 @@ class HttpExceptionsHandler:
 
         # Generate the base OpenAPI schema
         openapi_schema = get_openapi(
-            title=app.title, version=app.version, description=app.description, routes=app.routes
+            title=app.title, version=app.version, description=app.description, routes=app.routes,
         )
 
         # Import necessary constants and functions for schema manipulation
@@ -195,14 +195,14 @@ class HttpExceptionsHandler:
                         "description": "Validation Error",
                         "content": {
                             "application/json": {
-                                "schema": {"$ref": f"{REF_PREFIX}ExceptionResponseSchema"}
-                            }
+                                "schema": {"$ref": f"{REF_PREFIX}ExceptionResponseSchema"},
+                            },
                         },
                     }
 
         # Generate the custom error response definitions
         error_response_defs = schema(
-            [ExceptionResponseSchema], ref_prefix=REF_PREFIX, ref_template=f"{REF_PREFIX}{{model}}"
+            [ExceptionResponseSchema], ref_prefix=REF_PREFIX, ref_template=f"{REF_PREFIX}{{model}}",
         )
 
         # Update the OpenAPI schema components with the custom error response definitions

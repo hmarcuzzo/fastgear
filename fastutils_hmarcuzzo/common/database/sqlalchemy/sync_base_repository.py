@@ -31,7 +31,8 @@ SessionType = Session | SessionTransaction
 class BaseRepository(AbstractRepository[EntityType]):
     """Base repository class for handling database operations for a specific entity type.
 
-    This class provides methods for creating, reading, updating, and deleting records in the database.
+    This class provides methods for creating, reading, updating, and deleting records in the
+        database.
     It uses SQLAlchemy for database interactions and Pydantic for data validation and serialization.
 
     Args:
@@ -48,8 +49,8 @@ class BaseRepository(AbstractRepository[EntityType]):
         """Creates a new record in the database.
 
         Args:
-            new_record (EntityType | BaseModel): The new record to be created. It can be an instance of EntityType or
-                BaseModel.
+            new_record (EntityType | BaseModel): The new record to be created. It can be an
+                instance of EntityType or BaseModel.
             db (SessionType, optional): The database session. Defaults to None.
 
         Returns:
@@ -59,13 +60,13 @@ class BaseRepository(AbstractRepository[EntityType]):
         return (self.create_all([new_record], db))[0]
 
     def create_all(
-        self, new_records: list[EntityType | BaseModel], db: SessionType = None
+        self, new_records: list[EntityType | BaseModel], db: SessionType = None,
     ) -> list[EntityType]:
         """Creates multiple new records in the database.
 
         Args:
-            new_records (List[EntityType | BaseModel]): A list of new records to be created. Each record can be an
-                instance of EntityType or BaseModel.
+            new_records (List[EntityType | BaseModel]): A list of new records to be created.
+                Each record can be an instance of EntityType or BaseModel.
             db (SessionType, optional): The database session. Defaults to None.
 
         Returns:
@@ -82,17 +83,18 @@ class BaseRepository(AbstractRepository[EntityType]):
         return new_records
 
     def save(
-        self, new_record: EntityType | list[EntityType] = None, db: SessionType = None
+        self, new_record: EntityType | list[EntityType] = None, db: SessionType = None,
     ) -> EntityType | list[EntityType] | None:
         """Saves the given record(s) to the database by committing or flushing the session.
 
         Args:
-            new_record (EntityType | List[EntityType], optional): The record(s) to be saved. If provided, the record(s)
-                will be refreshed after saving. Defaults to None.
+            new_record (EntityType | List[EntityType], optional): The record(s) to be saved.
+                If provided, the record(s) will be refreshed after saving. Defaults to None.
             db (SessionType, optional): The database session. Defaults to None.
 
         Returns:
-            EntityType | List[EntityType] | None: The saved record(s) or None if no record was provided.
+            EntityType | List[EntityType] | None: The saved record(s) or None if no record
+                was provided.
 
         """
         self.commit_or_flush(db)
@@ -103,7 +105,8 @@ class BaseRepository(AbstractRepository[EntityType]):
 
     @staticmethod
     def commit_or_flush(db: SessionType = None) -> None:
-        """Commits the current transaction if not in a nested transaction, otherwise flushes the session.
+        """Commits the current transaction if not in a nested transaction, otherwise flushes
+            the session.
 
         Args:
             db (SessionType, optional): The database session. Defaults to None.
@@ -113,7 +116,7 @@ class BaseRepository(AbstractRepository[EntityType]):
 
     @staticmethod
     def refresh_record(
-        new_record: EntityType | list[EntityType], db: SessionType = None
+        new_record: EntityType | list[EntityType], db: SessionType = None,
     ) -> EntityType | list[EntityType]:
         """Refreshes the state of the record(s) from the database.
 
@@ -133,7 +136,7 @@ class BaseRepository(AbstractRepository[EntityType]):
         return new_record
 
     def find_one(
-        self, search_filter: str | FindOneOptions, db: SessionType = None
+        self, search_filter: str | FindOneOptions, db: SessionType = None,
     ) -> EntityType | None:
         """Finds a single record that matches the given search filter.
 
@@ -151,9 +154,10 @@ class BaseRepository(AbstractRepository[EntityType]):
         return result[0] if result else None
 
     def find_one_or_fail(
-        self, search_filter: str | FindOneOptions, db: SessionType = None
+        self, search_filter: str | FindOneOptions, db: SessionType = None,
     ) -> EntityType:
-        """Finds a single record that matches the given search filter or raises an exception if no record is found.
+        """Finds a single record that matches the given search filter or raises an exception if
+            no record is found.
 
         Args:
             search_filter (str | FindOneOptions): The filter criteria to search for the record.
@@ -171,20 +175,23 @@ class BaseRepository(AbstractRepository[EntityType]):
             result = db.execute(select_statement).one()[0]
         except NoResultFound:
             entity_name = self.entity.__name__
-            message = f'Could not find any entity of type "{entity_name}" that matches with the search filter'
+            message = (
+                f'Could not find any entity of type "{entity_name}" that matches with the '
+                f"search filter"
+            )
             raise NotFoundException(message, [entity_name])
 
         return result
 
     @singledispatchmethod
     def find(
-        self, stmt_or_filter: FindManyOptions | Select = None, db: SessionType = None
+        self, stmt_or_filter: FindManyOptions | Select = None, db: SessionType = None,
     ) -> Sequence[EntityType]:
         """Finds multiple records that match the given filter criteria or SQL statement.
 
         Args:
-            stmt_or_filter (FindManyOptions | Select, optional): The filter criteria or SQL statement to search for the
-                records. Defaults to None.
+            stmt_or_filter (FindManyOptions | Select, optional): The filter criteria or SQL
+                statement to search for the records. Defaults to None.
             db (SessionType, optional): The database session. Defaults to None.
 
         Returns:
@@ -195,7 +202,7 @@ class BaseRepository(AbstractRepository[EntityType]):
 
     @find.register
     def _(
-        self, options: FindManyOptions | dict | None, db: SessionType = None
+        self, options: FindManyOptions | dict | None, db: SessionType = None,
     ) -> Sequence[EntityType]:
         """Implementation when stmt_or_filter is an instance of FindManyOptions."""
         select_statement = self.select_constructor.build_select_statement(options)
@@ -211,8 +218,8 @@ class BaseRepository(AbstractRepository[EntityType]):
         """Counts the number of records that match the given filter criteria or SQL statement.
 
         Args:
-            stmt_or_filter (FindManyOptions | Select, optional): The filter criteria or SQL statement to count the
-                records. Defaults to None.
+            stmt_or_filter (FindManyOptions | Select, optional): The filter criteria or SQL
+                statement to count the records. Defaults to None.
             db (SessionType, optional): The database session. Defaults to None.
 
         Returns:
@@ -231,21 +238,23 @@ class BaseRepository(AbstractRepository[EntityType]):
     def _(self, select_stmt: Select, db: SessionType = None) -> int:
         """Implementation when stmt_or_filter is an instance of Select."""
         return db.execute(
-            select(func.count("*")).select_from(select_stmt.offset(None).limit(None).subquery())
+            select(func.count("*")).select_from(select_stmt.offset(None).limit(None).subquery()),
         ).scalar()
 
     def find_and_count(
-        self, search_filter: FindManyOptions = None, db: SessionType = None
+        self, search_filter: FindManyOptions = None, db: SessionType = None,
     ) -> tuple[Sequence[EntityType], int]:
-        """Finds multiple records that match the given filter criteria and counts the total number of matching records.
+        """Finds multiple records that match the given filter criteria and counts the total number
+            of matching records.
 
         Args:
-            search_filter (FindManyOptions, optional): The filter criteria to search for the records. Defaults to None.
+            search_filter (FindManyOptions, optional): The filter criteria to search for the
+                records. Defaults to None.
             db (SessionType, optional): The database session. Defaults to None.
 
         Returns:
-            Tuple[Sequence[EntityType], int]: A tuple containing a sequence of found records and the count of matching
-                records.
+            Tuple[Sequence[EntityType], int]: A tuple containing a sequence of found records and
+                the count of matching records.
 
         """
         select_statement = self.select_constructor.build_select_statement(search_filter)
@@ -263,13 +272,14 @@ class BaseRepository(AbstractRepository[EntityType]):
         """Updates a record that matches the given search filter with the provided model data.
 
         Args:
-            search_filter (str | FindOneOptions): The filter criteria to search for the record to be updated.
+            search_filter (str | FindOneOptions): The filter criteria to search for the record
+                to be updated.
             model_data (BaseModel | dict): The data to update the record with.
             db (SessionType, optional): The database session. Defaults to None.
 
         Returns:
-            UpdateResult: The result of the update operation, including the updated record, the number of affected
-                records, and any generated maps.
+            UpdateResult: The result of the update operation, including the updated record, the
+                number of affected records, and any generated maps.
 
         """
         record = self.find_one_or_fail(search_filter, db)
@@ -294,18 +304,18 @@ class BaseRepository(AbstractRepository[EntityType]):
         )
 
     def delete(
-        self, delete_statement: str | FindOneOptions | ReturningDelete, db: SessionType = None
+        self, delete_statement: str | FindOneOptions | ReturningDelete, db: SessionType = None,
     ) -> DeleteResult:
         """Deletes a record that matches the given delete statement or filter criteria.
 
         Args:
-            delete_statement (str | FindOneOptions | ReturningDelete): The delete statement or filter criteria to find
-                the record to be deleted.
+            delete_statement (str | FindOneOptions | ReturningDelete): The delete statement or
+                filter criteria to find the record to be deleted.
             db (SessionType, optional): The database session. Defaults to None.
 
         Returns:
-            DeleteResult: The result of the delete operation, including the raw data of deleted records and the number
-                of affected records.
+            DeleteResult: The result of the delete operation, including the raw data of deleted
+                records and the number of affected records.
 
         """
         if isinstance(delete_statement, Delete):

@@ -8,7 +8,7 @@
 </p>
 <hr>
 <p align="justify">
-<b>FastUtils</b> is a comprehensive Python library designed for <b>FastAPI</b>. It provides robust support for both 
+<b>FastGear</b> is a comprehensive Python library designed for <b>FastAPI</b>. It provides robust support for both 
     asynchronous and synchronous operations with <b>SQLAlchemy</b> and asynchronous operations with <b>Redis</b>. Key 
     features include dynamic pagination, custom error handling, automatic database session management within a context 
     manager, and much more.
@@ -29,13 +29,13 @@
 
 ## Requirements
 
-Before installing FastUtils, ensure you have the following prerequisites:
+Before installing FastGear, ensure you have the following prerequisites:
 
 * **Python:** Version 3.10 or newer.
-* **FastAPI:** FastGearis built to work with FastAPI, so having FastAPI in your project is essential.
-* **SQLAlchemy:** FastGearuses SQLAlchemy 2.0 for database operations, so you need SQLAlchemy 2.0 or newer.
-* **Pydantic V2:** FastGearleverages Pydantic models for data validation and serialization, so you need Pydantic 2.0 or newer.
-* **Redis:** If you plan to use Redis with FastUtils, you need to have Redis installed and running in a version 5.0 or newer.
+* **FastAPI:** FastGear is built to work with FastAPI, so having FastAPI in your project is essential.
+* **SQLAlchemy:** FastGear uses SQLAlchemy 2.0 for database operations, so you need SQLAlchemy 2.0 or newer.
+* **Pydantic V2:** FastGear leverages Pydantic models for data validation and serialization, so you need Pydantic 2.0 or newer.
+* **Redis:** If you plan to use Redis with FastGear, you need to have Redis installed and running in a version 5.0 or newer.
 
 # Installing
 

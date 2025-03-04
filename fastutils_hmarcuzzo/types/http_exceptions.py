@@ -44,7 +44,7 @@ class NotFoundException(CustomBaseException):
 
 class UnprocessableEntityException(CustomBaseException):
     def __init__(
-        self, msg: str, loc: list[str] = None, _type: str = "Unprocessable Entity"
+        self, msg: str, loc: list[str] = None, _type: str = "Unprocessable Entity",
     ) -> None:
         if loc is None:
             loc = []

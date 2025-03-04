@@ -7,22 +7,22 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session, SessionTransaction
 from sqlalchemy.sql.dml import Delete, ReturningDelete
 
-from fastutils_hmarcuzzo.common.database.abstract_repository import AbstractRepository
-from fastutils_hmarcuzzo.common.database.sqlalchemy.repository_utils.base_repository_utils import (
+from fastgear.common.database.abstract_repository import AbstractRepository
+from fastgear.common.database.sqlalchemy.repository_utils.base_repository_utils import (
     BaseRepositoryUtils,
 )
-from fastutils_hmarcuzzo.common.database.sqlalchemy.repository_utils.inject_db_parameter_decorator import (
+from fastgear.common.database.sqlalchemy.repository_utils.inject_db_parameter_decorator import (
     inject_db_parameter_decorator,
 )
-from fastutils_hmarcuzzo.common.database.sqlalchemy.repository_utils.select_constructor import (
+from fastgear.common.database.sqlalchemy.repository_utils.select_constructor import (
     SelectConstructor,
 )
-from fastutils_hmarcuzzo.types.delete_result import DeleteResult
-from fastutils_hmarcuzzo.types.find_many_options import FindManyOptions
-from fastutils_hmarcuzzo.types.find_one_options import FindOneOptions
-from fastutils_hmarcuzzo.types.generic_types_var import EntityType
-from fastutils_hmarcuzzo.types.http_exceptions import NotFoundException
-from fastutils_hmarcuzzo.types.update_result import UpdateResult
+from fastgear.types.delete_result import DeleteResult
+from fastgear.types.find_many_options import FindManyOptions
+from fastgear.types.find_one_options import FindOneOptions
+from fastgear.types.generic_types_var import EntityType
+from fastgear.types.http_exceptions import NotFoundException
+from fastgear.types.update_result import UpdateResult
 
 SessionType = Session | SessionTransaction
 
@@ -60,7 +60,7 @@ class BaseRepository(AbstractRepository[EntityType]):
         return (self.create_all([new_record], db))[0]
 
     def create_all(
-        self, new_records: list[EntityType | BaseModel], db: SessionType = None,
+        self, new_records: list[EntityType | BaseModel], db: SessionType = None
     ) -> list[EntityType]:
         """Creates multiple new records in the database.
 
@@ -83,7 +83,7 @@ class BaseRepository(AbstractRepository[EntityType]):
         return new_records
 
     def save(
-        self, new_record: EntityType | list[EntityType] = None, db: SessionType = None,
+        self, new_record: EntityType | list[EntityType] = None, db: SessionType = None
     ) -> EntityType | list[EntityType] | None:
         """Saves the given record(s) to the database by committing or flushing the session.
 
@@ -116,7 +116,7 @@ class BaseRepository(AbstractRepository[EntityType]):
 
     @staticmethod
     def refresh_record(
-        new_record: EntityType | list[EntityType], db: SessionType = None,
+        new_record: EntityType | list[EntityType], db: SessionType = None
     ) -> EntityType | list[EntityType]:
         """Refreshes the state of the record(s) from the database.
 
@@ -136,7 +136,7 @@ class BaseRepository(AbstractRepository[EntityType]):
         return new_record
 
     def find_one(
-        self, search_filter: str | FindOneOptions, db: SessionType = None,
+        self, search_filter: str | FindOneOptions, db: SessionType = None
     ) -> EntityType | None:
         """Finds a single record that matches the given search filter.
 
@@ -154,7 +154,7 @@ class BaseRepository(AbstractRepository[EntityType]):
         return result[0] if result else None
 
     def find_one_or_fail(
-        self, search_filter: str | FindOneOptions, db: SessionType = None,
+        self, search_filter: str | FindOneOptions, db: SessionType = None
     ) -> EntityType:
         """Finds a single record that matches the given search filter or raises an exception if
             no record is found.
@@ -185,7 +185,7 @@ class BaseRepository(AbstractRepository[EntityType]):
 
     @singledispatchmethod
     def find(
-        self, stmt_or_filter: FindManyOptions | Select = None, db: SessionType = None,
+        self, stmt_or_filter: FindManyOptions | Select = None, db: SessionType = None
     ) -> Sequence[EntityType]:
         """Finds multiple records that match the given filter criteria or SQL statement.
 
@@ -202,7 +202,7 @@ class BaseRepository(AbstractRepository[EntityType]):
 
     @find.register
     def _(
-        self, options: FindManyOptions | dict | None, db: SessionType = None,
+        self, options: FindManyOptions | dict | None, db: SessionType = None
     ) -> Sequence[EntityType]:
         """Implementation when stmt_or_filter is an instance of FindManyOptions."""
         select_statement = self.select_constructor.build_select_statement(options)
@@ -238,11 +238,11 @@ class BaseRepository(AbstractRepository[EntityType]):
     def _(self, select_stmt: Select, db: SessionType = None) -> int:
         """Implementation when stmt_or_filter is an instance of Select."""
         return db.execute(
-            select(func.count("*")).select_from(select_stmt.offset(None).limit(None).subquery()),
+            select(func.count("*")).select_from(select_stmt.offset(None).limit(None).subquery())
         ).scalar()
 
     def find_and_count(
-        self, search_filter: FindManyOptions = None, db: SessionType = None,
+        self, search_filter: FindManyOptions = None, db: SessionType = None
     ) -> tuple[Sequence[EntityType], int]:
         """Finds multiple records that match the given filter criteria and counts the total number
             of matching records.
@@ -304,7 +304,7 @@ class BaseRepository(AbstractRepository[EntityType]):
         )
 
     def delete(
-        self, delete_statement: str | FindOneOptions | ReturningDelete, db: SessionType = None,
+        self, delete_statement: str | FindOneOptions | ReturningDelete, db: SessionType = None
     ) -> DeleteResult:
         """Deletes a record that matches the given delete statement or filter criteria.
 

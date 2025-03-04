@@ -5,8 +5,8 @@ from inspect import iscoroutinefunction, signature
 from types import UnionType
 from typing import Any, TypeVar, Union, get_args, get_origin
 
-from fastutils_hmarcuzzo.common.database.sqlalchemy.session import AllSessionType
-from fastutils_hmarcuzzo.middlewares.db_session_middleware import db_session
+from fastgear.common.database.sqlalchemy.session import AllSessionType
+from fastgear.middlewares.db_session_middleware import db_session
 
 ClassType = TypeVar("ClassType")
 

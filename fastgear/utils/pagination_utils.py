@@ -6,11 +6,11 @@ from pydantic import BaseModel, TypeAdapter
 from sqlalchemy import String, asc, cast, desc, inspect, or_
 from sqlalchemy_utils import cast_if, get_columns
 
-from fastutils_hmarcuzzo.types.custom_pages import Page
-from fastutils_hmarcuzzo.types.find_many_options import FindManyOptions
-from fastutils_hmarcuzzo.types.generic_types_var import ColumnsQueryType, EntityType
-from fastutils_hmarcuzzo.types.http_exceptions import BadRequestException
-from fastutils_hmarcuzzo.types.pagination import Pagination, PaginationSearch, PaginationSort
+from fastgear.types.custom_pages import Page
+from fastgear.types.find_many_options import FindManyOptions
+from fastgear.types.generic_types_var import ColumnsQueryType, EntityType
+from fastgear.types.http_exceptions import BadRequestException
+from fastgear.types.pagination import Pagination, PaginationSearch, PaginationSort
 
 F = TypeVar("F")
 OB = TypeVar("OB")

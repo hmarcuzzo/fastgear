@@ -3,12 +3,12 @@ from typing import Annotated, Literal, TypeVar
 from fastapi import Query
 from pydantic import constr
 
-from fastutils_hmarcuzzo.constants.regex_expressions import REGEX_ANY_CHAR, REGEX_ORDER_BY_QUERY
-from fastutils_hmarcuzzo.decorators.simple_pagination_decorator import SimplePaginationOptions
-from fastutils_hmarcuzzo.types.custom_pages import custom_page_query, custom_size_query
-from fastutils_hmarcuzzo.types.find_many_options import FindManyOptions
-from fastutils_hmarcuzzo.types.generic_types_var import ColumnsQueryType, EntityType
-from fastutils_hmarcuzzo.utils.pagination_utils import PaginationUtils
+from fastgear.constants.regex_expressions import REGEX_ANY_CHAR, REGEX_ORDER_BY_QUERY
+from fastgear.decorators.simple_pagination_decorator import SimplePaginationOptions
+from fastgear.types.custom_pages import custom_page_query, custom_size_query
+from fastgear.types.find_many_options import FindManyOptions
+from fastgear.types.generic_types_var import ColumnsQueryType, EntityType
+from fastgear.utils.pagination_utils import PaginationUtils
 
 FA = TypeVar("FA")
 OB = TypeVar("OB")

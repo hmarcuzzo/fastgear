@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel
 from sqlalchemy.exc import InvalidRequestError
 
-from fastutils_hmarcuzzo.common.schema.custom_base_model_schema import CustomBaseModel
+from fastgear.common.schema.custom_base_model_schema import CustomBaseModel
 
 
 class BaseSchema(CustomBaseModel):

@@ -7,7 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response
 
-from fastutils_hmarcuzzo.common.database.sqlalchemy.session import (
+from fastgear.common.database.sqlalchemy.session import (
     AsyncDatabaseSessionFactory,
     SyncDatabaseSessionFactory,
 )

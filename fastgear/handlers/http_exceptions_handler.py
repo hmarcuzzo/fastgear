@@ -9,11 +9,11 @@ from starlette.exceptions import HTTPException
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
-from fastutils_hmarcuzzo.common.schema.exception_response_schema import (
+from fastgear.common.schema.exception_response_schema import (
     DetailResponseSchema,
     ExceptionResponseSchema,
 )
-from fastutils_hmarcuzzo.types.http_exceptions import (
+from fastgear.types.http_exceptions import (
     BadRequestException,
     CustomHTTPExceptionType,
     DuplicateValueException,
@@ -23,7 +23,7 @@ from fastutils_hmarcuzzo.types.http_exceptions import (
     UnauthorizedException,
     UnprocessableEntityException,
 )
-from fastutils_hmarcuzzo.utils.json_utils import JsonUtils
+from fastgear.utils.json_utils import JsonUtils
 
 
 class HttpExceptionsHandler:

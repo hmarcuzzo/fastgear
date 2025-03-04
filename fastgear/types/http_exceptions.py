@@ -7,7 +7,7 @@ from starlette.status import (
     HTTP_429_TOO_MANY_REQUESTS,
 )
 
-from fastutils_hmarcuzzo.types.custom_base_exception import CustomBaseException
+from fastgear.types.custom_base_exception import CustomBaseException
 
 
 class BadRequestException(CustomBaseException):

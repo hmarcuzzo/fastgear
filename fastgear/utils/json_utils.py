@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from fastutils_hmarcuzzo.common.schema.exception_response_schema import DetailResponseSchema
+from fastgear.common.schema.exception_response_schema import DetailResponseSchema
 
 
 class JsonUtils:

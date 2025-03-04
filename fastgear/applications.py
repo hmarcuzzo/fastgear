@@ -3,8 +3,8 @@ import contextlib
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 
-from fastutils_hmarcuzzo.handlers.http_exceptions_handler import HttpExceptionsHandler
-from fastutils_hmarcuzzo.middlewares.db_session_middleware import (
+from fastgear.handlers.http_exceptions_handler import HttpExceptionsHandler
+from fastgear.middlewares.db_session_middleware import (
     AsyncDBSessionMiddleware,
     SyncDBSessionMiddleware,
 )

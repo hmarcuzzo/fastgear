@@ -10,7 +10,7 @@ from sqlalchemy.testing.schema import mapped_column
 from sqlalchemy_utils import UUIDType
 from uuid6 import uuid7
 
-from fastutils_hmarcuzzo.common.database.sqlalchemy.base import Base
+from fastgear.common.database.sqlalchemy.base import Base
 
 
 @dataclass

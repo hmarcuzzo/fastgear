@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from fastutils_hmarcuzzo.types.generic_types_var import EntityType
+from fastgear.types.generic_types_var import EntityType
 
 
 class BaseRepositoryUtils:

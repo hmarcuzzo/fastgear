@@ -4,10 +4,10 @@ from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 
-from fastutils_hmarcuzzo.types.delete_result import DeleteResult
-from fastutils_hmarcuzzo.types.find_many_options import FindManyOptions
-from fastutils_hmarcuzzo.types.find_one_options import FindOneOptions
-from fastutils_hmarcuzzo.types.update_result import UpdateResult
+from fastgear.types.delete_result import DeleteResult
+from fastgear.types.find_many_options import FindManyOptions
+from fastgear.types.find_one_options import FindOneOptions
+from fastgear.types.update_result import UpdateResult
 
 EntityType = TypeVar("EntityType")
 SessionType = TypeVar("SessionType")
@@ -34,7 +34,7 @@ class AbstractRepository(ABC, Generic[EntityType]):
 
     @abstractmethod
     def create_all(
-        self, new_records: list[EntityType | Any], db: SessionType = None,
+        self, new_records: list[EntityType | Any], db: SessionType = None
     ) -> list[EntityType]:
         """Abstract method to create multiple records.
 
@@ -50,7 +50,7 @@ class AbstractRepository(ABC, Generic[EntityType]):
 
     @abstractmethod
     def save(
-        self, new_record: EntityType | list[EntityType] = None, db: SessionType = None,
+        self, new_record: EntityType | list[EntityType] = None, db: SessionType = None
     ) -> EntityType | list[EntityType] | None:
         """Abstract method to save records.
 
@@ -80,7 +80,7 @@ class AbstractRepository(ABC, Generic[EntityType]):
     @staticmethod
     @abstractmethod
     def refresh_record(
-        new_record: EntityType | list[EntityType], db: SessionType = None,
+        new_record: EntityType | list[EntityType], db: SessionType = None
     ) -> EntityType | list[EntityType]:
         """Abstract method to refresh records.
 
@@ -95,7 +95,7 @@ class AbstractRepository(ABC, Generic[EntityType]):
 
     @abstractmethod
     def find_one(
-        self, search_filter: str | FindOneOptions, db: SessionType = None,
+        self, search_filter: str | FindOneOptions, db: SessionType = None
     ) -> EntityType | None:
         """Abstract method to find one record.
 
@@ -111,7 +111,7 @@ class AbstractRepository(ABC, Generic[EntityType]):
 
     @abstractmethod
     def find_one_or_fail(
-        self, search_filter: str | FindOneOptions, db: SessionType = None,
+        self, search_filter: str | FindOneOptions, db: SessionType = None
     ) -> EntityType:
         """Abstract method to find one record or fail if no record is found.
 
@@ -130,7 +130,7 @@ class AbstractRepository(ABC, Generic[EntityType]):
 
     @abstractmethod
     def find(
-        self, stmt_or_filter: FindManyOptions | Any = None, db: SessionType = None,
+        self, stmt_or_filter: FindManyOptions | Any = None, db: SessionType = None
     ) -> Sequence[EntityType]:
         """Abstract method to find many records.
 
@@ -161,7 +161,7 @@ class AbstractRepository(ABC, Generic[EntityType]):
 
     @abstractmethod
     def find_and_count(
-        self, search_filter: FindManyOptions = None, db: SessionType = None,
+        self, search_filter: FindManyOptions = None, db: SessionType = None
     ) -> tuple[Sequence[EntityType], int]:
         """Abstract method to find and count records. Implementation can be sync or async.
 
@@ -198,7 +198,7 @@ class AbstractRepository(ABC, Generic[EntityType]):
 
     @abstractmethod
     def delete(
-        self, delete_statement: str | FindOneOptions | Any, db: SessionType = None,
+        self, delete_statement: str | FindOneOptions | Any, db: SessionType = None
     ) -> DeleteResult:
         """Abstract method to delete records. Implementation can be sync or async.
 

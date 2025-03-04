@@ -1,9 +1,9 @@
 from sqlalchemy import Select, inspect, select
 from sqlalchemy.orm import load_only, selectinload
 
-from fastutils_hmarcuzzo.types.find_many_options import FindManyOptions
-from fastutils_hmarcuzzo.types.find_one_options import FindOneOptions
-from fastutils_hmarcuzzo.types.generic_types_var import EntityType
+from fastgear.types.find_many_options import FindManyOptions
+from fastgear.types.find_one_options import FindOneOptions
+from fastgear.types.generic_types_var import EntityType
 
 
 class SelectConstructor:

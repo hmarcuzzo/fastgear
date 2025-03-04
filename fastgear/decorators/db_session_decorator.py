@@ -7,7 +7,7 @@ from functools import wraps
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
-from fastutils_hmarcuzzo.common.database.sqlalchemy.session import (
+from fastgear.common.database.sqlalchemy.session import (
     AsyncDatabaseSessionFactory,
     SyncDatabaseSessionFactory,
 )
@@ -18,7 +18,7 @@ db_session: ContextVar[Session | AsyncSession | None] = ContextVar("db_session",
 
 class BaseDBSessionDecorator:
     def __init__(
-        self, session_factory: SyncDatabaseSessionFactory | AsyncDatabaseSessionFactory,
+        self, session_factory: SyncDatabaseSessionFactory | AsyncDatabaseSessionFactory
     ) -> None:
         self.session_factory = session_factory
 

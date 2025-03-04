@@ -1,6 +1,6 @@
 [project]
-name = "fastutils-hmarcuzzo"
-version = "0.6.0"
+name = "fastgear"
+version = "0.1.0"
 description = "A personal utility library I've developed to streamline and optimize backend development with FastAPI in my projects. From generic repositories and queries to enums, error handling, and more, fastutils_hmarcuzzo encompasses essential tools that have proven invaluable in my development journey, whether as a novice or a seasoned professional."
 authors = [
     {name = "Henrique Marcuzzo <henrique.souza.m06@gmail.com>"}

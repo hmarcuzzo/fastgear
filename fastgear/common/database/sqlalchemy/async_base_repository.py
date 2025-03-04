@@ -8,22 +8,22 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncSessionTransaction
 from sqlalchemy.sql.dml import Delete, ReturningDelete
 
-from fastutils_hmarcuzzo.common.database.abstract_repository import AbstractRepository
-from fastutils_hmarcuzzo.common.database.sqlalchemy.repository_utils.base_repository_utils import (
+from fastgear.common.database.abstract_repository import AbstractRepository
+from fastgear.common.database.sqlalchemy.repository_utils.base_repository_utils import (
     BaseRepositoryUtils,
 )
-from fastutils_hmarcuzzo.common.database.sqlalchemy.repository_utils.inject_db_parameter_decorator import (
+from fastgear.common.database.sqlalchemy.repository_utils.inject_db_parameter_decorator import (
     inject_db_parameter_decorator,
 )
-from fastutils_hmarcuzzo.common.database.sqlalchemy.repository_utils.select_constructor import (
+from fastgear.common.database.sqlalchemy.repository_utils.select_constructor import (
     SelectConstructor,
 )
-from fastutils_hmarcuzzo.types.delete_result import DeleteResult
-from fastutils_hmarcuzzo.types.find_many_options import FindManyOptions
-from fastutils_hmarcuzzo.types.find_one_options import FindOneOptions
-from fastutils_hmarcuzzo.types.generic_types_var import EntityType
-from fastutils_hmarcuzzo.types.http_exceptions import NotFoundException
-from fastutils_hmarcuzzo.types.update_result import UpdateResult
+from fastgear.types.delete_result import DeleteResult
+from fastgear.types.find_many_options import FindManyOptions
+from fastgear.types.find_one_options import FindOneOptions
+from fastgear.types.generic_types_var import EntityType
+from fastgear.types.http_exceptions import NotFoundException
+from fastgear.types.update_result import UpdateResult
 
 SessionType = AsyncSession | AsyncSessionTransaction
 

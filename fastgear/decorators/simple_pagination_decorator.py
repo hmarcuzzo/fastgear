@@ -1,7 +1,7 @@
-from fastutils_hmarcuzzo.types.custom_pages import custom_page_query, custom_size_query
-from fastutils_hmarcuzzo.types.find_many_options import FindManyOptions
-from fastutils_hmarcuzzo.types.pagination import Pagination
-from fastutils_hmarcuzzo.utils.pagination_utils import PaginationUtils
+from fastgear.types.custom_pages import custom_page_query, custom_size_query
+from fastgear.types.find_many_options import FindManyOptions
+from fastgear.types.pagination import Pagination
+from fastgear.utils.pagination_utils import PaginationUtils
 
 
 class SimplePaginationOptions:

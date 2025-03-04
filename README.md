@@ -39,18 +39,18 @@ Before installing FastUtils, ensure you have the following prerequisites:
 
 # Installing
 
-To install the `fastutils-hmarcuzzo` package, follow these steps:
+To install the `fastgear` package, follow these steps:
 
 ## Using pip
 Run the following command:
 ```sh
-pip install fastutils-hmarcuzzo
+pip install fastgear
 ```
 
 ## Using Poetry
 Run the following command:
 ```sh
-poetry add fastutils-hmarcuzzo
+poetry add fastgear
 ```
 
 ## License

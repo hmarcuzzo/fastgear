@@ -39,7 +39,7 @@ class BaseRepository(AbstractRepository[EntityType]):
 
     """
 
-    def __init__(self, entity: type[EntityType]):
+    def __init__(self, entity: type[EntityType]) -> None:
         super().__init__(entity)
         self.select_constructor = SelectConstructor(entity)
         self.repo_utils = BaseRepositoryUtils()
@@ -204,8 +204,7 @@ class BaseRepository(AbstractRepository[EntityType]):
     @find.register
     def _(self, select_stmt: Select, db: SessionType = None) -> Sequence[EntityType]:
         """Implementation when stmt_or_filter is an instance of Select."""
-        result = db.execute(select_stmt).scalars().all()
-        return result
+        return db.execute(select_stmt).scalars().all()
 
     @singledispatchmethod
     def count(self, stmt_or_filter: FindManyOptions | Select = None, db: SessionType = None) -> int:

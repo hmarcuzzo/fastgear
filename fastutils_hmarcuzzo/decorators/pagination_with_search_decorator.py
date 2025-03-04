@@ -25,8 +25,8 @@ class PaginationWithSearchOptions(SimplePaginationOptions):
         columns_query: ColumnsQueryType,
         find_all_query: FA = None,
         order_by_query: OB = None,
-        block_attributes: list[Literal["search", "sort", "columns", "search_all"]] = [],
-    ):
+        block_attributes: list[Literal["search", "sort", "columns", "search_all"]] = None,
+    ) -> None:
         """Initializes the PaginationWithSearchOptions class.
 
         This constructor sets up the pagination options with search capabilities for a given entity.
@@ -41,6 +41,8 @@ class PaginationWithSearchOptions(SimplePaginationOptions):
                 A list of attributes to block from being used in the pagination options. Defaults to an empty list.
 
         """
+        if block_attributes is None:
+            block_attributes = []
         self.entity = entity
         self.columns_query = columns_query
         self.find_all_query = find_all_query

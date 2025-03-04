@@ -19,8 +19,8 @@ class JsonUtils:
             TypeError: If the object type is not serializable.
 
         """
-        if isinstance(obj, (datetime, date)):
+        if isinstance(obj, datetime | date):
             return obj.isoformat()
         if isinstance(obj, DetailResponseSchema):
             return obj.dict()
-        raise TypeError("Type %s not serializable" % type(obj))
+        raise TypeError(f"Type {type(obj)} not serializable")

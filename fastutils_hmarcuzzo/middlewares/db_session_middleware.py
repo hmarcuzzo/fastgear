@@ -21,7 +21,7 @@ class BaseDBSessionMiddleware(BaseHTTPMiddleware):
         self,
         app: FastAPI,
         session_factory: SyncDatabaseSessionFactory | AsyncDatabaseSessionFactory,
-    ):
+    ) -> None:
         super().__init__(app)
         self.session_factory = session_factory
 

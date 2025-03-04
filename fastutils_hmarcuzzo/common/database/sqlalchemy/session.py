@@ -22,7 +22,7 @@ class SyncDatabaseSessionFactory:
         """
         self.engine = create_engine(database_url)
         self.SessionLocal = sessionmaker(
-            self.engine, autocommit=False, autoflush=False, expire_on_commit=False,
+            self.engine, autocommit=False, autoflush=False, expire_on_commit=False
         )
 
     def get_session(self) -> Session:

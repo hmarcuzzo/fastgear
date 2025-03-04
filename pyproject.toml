@@ -65,6 +65,15 @@ exclude = [
 fixable = ["ALL"]  # Fix all fixable issues
 select = ["ALL"]
 extend-select = ["I"]
+ignore = [
+    "ANN401",
+    "B904",
+    "PLR0913",
+    "D",
+    "EM",
+    "RUF",
+    "TRY"
+]
 
 [tool.ruff.format]
 quote-style = "double"

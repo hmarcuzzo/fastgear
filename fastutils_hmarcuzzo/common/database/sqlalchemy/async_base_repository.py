@@ -205,15 +205,13 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
     async def _(
         self, options: FindManyOptions | dict | None, db: SessionType = None,
     ) -> Sequence[EntityType]:
-        """Implementation when stmt_or_filter is an instance of FindManyOptions.
-        """
+        """Implementation when stmt_or_filter is an instance of FindManyOptions."""
         select_statement = self.select_constructor.build_select_statement(options)
         return await self.find(select_statement, db=db)  # Call the method registered for Select
 
     @find.register
     async def _(self, select_stmt: Select, db: SessionType = None) -> Sequence[EntityType]:
-        """Implementation when stmt_or_filter is an instance of Select.
-        """
+        """Implementation when stmt_or_filter is an instance of Select."""
         result = (await db.execute(select_stmt)).scalars().all()
         return result
 
@@ -236,15 +234,13 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
 
     @count.register
     async def _(self, options: FindManyOptions | dict | None, db: SessionType = None) -> int:
-        """Implementation when stmt_or_filter is an instance of FindManyOptions.
-        """
+        """Implementation when stmt_or_filter is an instance of FindManyOptions."""
         select_statement = self.select_constructor.build_select_statement(options)
         return await self.count(select_statement, db=db)
 
     @count.register
     async def _(self, select_stmt: Select, db: SessionType = None) -> int:
-        """Implementation when stmt_or_filter is an instance of Select.
-        """
+        """Implementation when stmt_or_filter is an instance of Select."""
         return (
             await db.execute(
                 select(func.count("*")).select_from(select_stmt.offset(None).limit(None).subquery()),

@@ -57,7 +57,7 @@ class PaginationWithSearchOptions(SimplePaginationOptions):
         sort: Annotated[list[SortString] | None, Query(examples=["field:by"])] = None,
         columns: Annotated[list[ColumnsString] | None, Query(examples=["field"])] = None,
         search_all: Annotated[
-            str | None, Query(pattern=f"^{REGEX_ANY_CHAR}$", examples=["value"]),
+            str | None, Query(pattern=f"^{REGEX_ANY_CHAR}$", examples=["value"])
         ] = None,
     ) -> FindManyOptions:
         """Generates pagination and search options for a given entity.
@@ -82,11 +82,11 @@ class PaginationWithSearchOptions(SimplePaginationOptions):
 
         """
         self.pagination_utils.validate_block_attributes(
-            self.block_attributes, search, sort, columns, search_all,
+            self.block_attributes, search, sort, columns, search_all
         )
 
         paging_params = self.pagination_utils.generate_paging_parameters(
-            page, size, search, sort, self.find_all_query, self.order_by_query,
+            page, size, search, sort, self.find_all_query, self.order_by_query
         )
 
         return self.pagination_utils.get_paging_data(

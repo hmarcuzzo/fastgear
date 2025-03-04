@@ -15,7 +15,7 @@
 </p>
 <hr>
 
-**Source Code**: <a href="https://github.com/hmarcuzzo/fast-utils" target="_blank">https://github.com/hmarcuzzo/fast-utils</a>
+**Source Code**: <a href="https://github.com/hmarcuzzo/fastgear" target="_blank">https://github.com/hmarcuzzo/fastgear</a>
 
 
 ## Features

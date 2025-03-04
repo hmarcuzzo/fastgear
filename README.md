@@ -32,9 +32,9 @@
 Before installing FastUtils, ensure you have the following prerequisites:
 
 * **Python:** Version 3.10 or newer.
-* **FastAPI:** FastUtils is built to work with FastAPI, so having FastAPI in your project is essential.
-* **SQLAlchemy:** FastUtils uses SQLAlchemy 2.0 for database operations, so you need SQLAlchemy 2.0 or newer.
-* **Pydantic V2:** FastUtils leverages Pydantic models for data validation and serialization, so you need Pydantic 2.0 or newer.
+* **FastAPI:** FastGearis built to work with FastAPI, so having FastAPI in your project is essential.
+* **SQLAlchemy:** FastGearuses SQLAlchemy 2.0 for database operations, so you need SQLAlchemy 2.0 or newer.
+* **Pydantic V2:** FastGearleverages Pydantic models for data validation and serialization, so you need Pydantic 2.0 or newer.
 * **Redis:** If you plan to use Redis with FastUtils, you need to have Redis installed and running in a version 5.0 or newer.
 
 # Installing

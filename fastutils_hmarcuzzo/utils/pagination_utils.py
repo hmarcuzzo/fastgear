@@ -60,11 +60,12 @@ class PaginationUtils:
         self.search_all_data(entity, paging_data, search_all, find_all_query)
         self.select_columns(columns, columns_query, entity, paging_data)
 
-        paging_data = {**paging_data, **formatted_skip_take}
-        return paging_data
+        return {**paging_data, **formatted_skip_take}
 
     @staticmethod
-    def sort_data(paging_options: Pagination, entity: EntityType, paging_data: FindManyOptions):
+    def sort_data(
+        paging_options: Pagination, entity: EntityType, paging_data: FindManyOptions,
+    ) -> None:
         if "sort" not in paging_options:
             return
 
@@ -78,7 +79,9 @@ class PaginationUtils:
             paging_data["order_by"].append(order)
 
     @staticmethod
-    def search_data(paging_options: Pagination, entity: EntityType, paging_data: FindManyOptions):
+    def search_data(
+        paging_options: Pagination, entity: EntityType, paging_data: FindManyOptions,
+    ) -> None:
         if "search" not in paging_options:
             return
 
@@ -97,7 +100,7 @@ class PaginationUtils:
         paging_data: FindManyOptions,
         search_all: str = None,
         find_all_query: F = None,
-    ):
+    ) -> None:
         if not search_all:
             return
 
@@ -121,7 +124,7 @@ class PaginationUtils:
         columns_query: ColumnsQueryType,
         entity: EntityType,
         paging_options: FindManyOptions,
-    ):
+    ) -> None:
         if PaginationUtils.validate_columns(list(set(selected_columns)), columns_query):
             (paging_options, selected_columns) = (
                 PaginationUtils.generating_selected_relationships_and_columns(
@@ -133,11 +136,9 @@ class PaginationUtils:
 
     @staticmethod
     def format_skip_take_options(paging_options: Pagination) -> FindManyOptions:
-        paging_data = FindManyOptions(
+        return FindManyOptions(
             skip=(paging_options["skip"] - 1) * paging_options["take"], take=paging_options["take"],
         )
-
-        return paging_data
 
     @staticmethod
     def _remove_duplicate_params(params: list[str]) -> list[str]:
@@ -225,11 +226,7 @@ class PaginationUtils:
     def validate_columns(columns: list[str], columns_query_dto: ColumnsQueryType) -> bool:
         query_dto_fields = columns_query_dto.__fields__
 
-        for column in columns:
-            if column not in query_dto_fields:
-                return False
-
-        return True
+        return all(column in query_dto_fields for column in columns)
 
     @staticmethod
     def generating_selected_relationships_and_columns(
@@ -287,7 +284,7 @@ class PaginationUtils:
         sort: list | None,
         columns: list | None,
         search_all: str | None,
-    ):
+    ) -> None:
         attributes = {"search": search, "sort": sort, "columns": columns, "search_all": search_all}
 
         for attribute in block_attributes:
@@ -299,14 +296,17 @@ class PaginationUtils:
 
     @staticmethod
     def can_convert(find_all_query: F, search_param: PaginationSearch) -> bool:
-        """Validates if the search parameter can be converted to the type defined in the find_all_query.
+        """Validates if the search parameter can be converted to the type defined
+        in the find_all_query.
 
         Args:
             find_all_query (F): The query object that defines the expected types.
-            search_param (PaginationSearch): The search parameter containing the field and value to be validated.
+            search_param (PaginationSearch): The search parameter containing the field and value
+            to be validated.
 
         Returns:
-            bool: True if the search parameter can be converted to the expected type, False otherwise.
+            bool: True if the search parameter can be converted to the expected type,
+            False otherwise.
 
         Raises:
             BadRequestException: If the search value is invalid or cannot be converted.
@@ -327,12 +327,13 @@ class PaginationUtils:
         """Aggregates values by field from a list of pagination search entries.
 
         Args:
-            entries (List[PaginationSearch]): A list of pagination search entries, each containing a field and value.
+            entries (List[PaginationSearch]): A list of pagination search entries, each containing
+            a field and value.
             find_all_query (F): The query object that defines the expected types for the fields.
 
         Returns:
-            List[Dict[str, str | List[str]]]: A list of dictionaries where each dictionary contains a field and its
-                aggregated values.
+            List[Dict[str, str | List[str]]]: A list of dictionaries where each dictionary contains
+             a field and its aggregated values.
 
         """
         query_attr_types = typing.get_type_hints(find_all_query)

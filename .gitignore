@@ -215,5 +215,7 @@ fabric.properties
 
 
 ### Project
+.idea/*
+
 # Ruff
 .ruff_cache/*

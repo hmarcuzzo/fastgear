@@ -1,24 +1,18 @@
 import asyncio
 import inspect
 from collections.abc import Callable
-from contextvars import ContextVar
 from functools import wraps
-
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 
 from fastgear.common.database.sqlalchemy.session import (
     AsyncDatabaseSessionFactory,
     SyncDatabaseSessionFactory,
 )
-
-# Unified context variable for both sync and async sessions
-db_session: ContextVar[Session | AsyncSession | None] = ContextVar("db_session", default=None)
+from fastgear.variables import db_session
 
 
 class BaseDBSessionDecorator:
     def __init__(
-        self, session_factory: SyncDatabaseSessionFactory | AsyncDatabaseSessionFactory
+        self, session_factory: SyncDatabaseSessionFactory | AsyncDatabaseSessionFactory,
     ) -> None:
         self.session_factory = session_factory
 

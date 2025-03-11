@@ -1,8 +1,4 @@
-from contextvars import ContextVar
-
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
@@ -11,9 +7,7 @@ from fastgear.common.database.sqlalchemy.session import (
     AsyncDatabaseSessionFactory,
     SyncDatabaseSessionFactory,
 )
-
-# Unified context variable for both sync and async sessions
-db_session: ContextVar[Session | AsyncSession | None] = ContextVar("db_session", default=None)
+from fastgear.variables import db_session
 
 
 class BaseDBSessionMiddleware(BaseHTTPMiddleware):

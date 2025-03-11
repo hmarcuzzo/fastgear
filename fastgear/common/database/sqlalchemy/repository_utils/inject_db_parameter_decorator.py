@@ -6,11 +6,12 @@ from types import UnionType
 from typing import Any, TypeVar, Union, get_args, get_origin
 
 from fastgear.common.database.sqlalchemy.session import AllSessionType
-from fastgear.middlewares.db_session_middleware import db_session
+from fastgear.variables import db_session
 
 ClassType = TypeVar("ClassType")
 
 
+# TODO: Deprecate for the moment - Remove in the future
 def inject_db_parameter_decorator(cls: type[ClassType]) -> type[ClassType]:
     """Class decorator that modifies methods of the given class to automatically inject a default parameter value
     if it is not already present in the method's arguments. It applies another decorator,

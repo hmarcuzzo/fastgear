@@ -27,10 +27,10 @@ from fastgear.utils.json_utils import JsonUtils
 
 
 class HttpExceptionsHandler:
-    def __init__(self, app: FastAPI) -> None:
+    def __init__(self, app: FastAPI, add_custom_error_response: bool = False) -> None:
         self.app = app
         self.add_exceptions_handler()
-        self.custom_error_response(app)
+        self.custom_error_response(app) if add_custom_error_response else None
 
     def add_exceptions_handler(self) -> None:
         """Adds exception handlers to the FastAPI app for handling various HTTP exceptions."""

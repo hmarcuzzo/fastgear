@@ -8,11 +8,8 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.dml import Delete, ReturningDelete
 
 from fastgear.common.database.abstract_repository import AbstractRepository
-from fastgear.common.database.sqlalchemy.repository_utils.base_repository_utils import (
-    BaseRepositoryUtils,
-)
-from fastgear.common.database.sqlalchemy.repository_utils.select_constructor import (
-    SelectConstructor,
+from fastgear.common.database.sqlalchemy.repository_utils.inject_db_parameter_decorator import (
+    inject_db_parameter_decorator,
 )
 from fastgear.common.database.sqlalchemy.session import AsyncSessionType
 from fastgear.types.delete_result import DeleteResult
@@ -23,6 +20,7 @@ from fastgear.types.http_exceptions import NotFoundException
 from fastgear.types.update_result import UpdateResult
 
 
+@inject_db_parameter_decorator
 class AsyncBaseRepository(AbstractRepository[EntityType]):
     """Asynchronous base repository class for handling database operations for a specific entity type.
 
@@ -34,30 +32,34 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
 
     """
 
-    def __init__(self, entity: type[EntityType], db: AsyncSessionType) -> None:
-        super().__init__(entity, db)
-        self.select_constructor = SelectConstructor(entity)
-        self.repo_utils = BaseRepositoryUtils()
+    def __init__(self, entity: type[EntityType]) -> None:
+        super().__init__(entity)
 
-    async def create(self, new_record: EntityType | BaseModel) -> EntityType:
+    async def create(
+        self, new_record: EntityType | BaseModel, db: AsyncSessionType = None
+    ) -> EntityType:
         """Creates a new record in the database.
 
         Args:
             new_record (EntityType | BaseModel): The new record to be created. It can be an instance of EntityType or
                 BaseModel.
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             EntityType: The created record.
 
         """
-        return (await self.create_all([new_record]))[0]
+        return (await self.create_all([new_record], db))[0]
 
-    async def create_all(self, new_records: list[EntityType | BaseModel]) -> list[EntityType]:
+    async def create_all(
+        self, new_records: list[EntityType | BaseModel], db: AsyncSessionType = None
+    ) -> list[EntityType]:
         """Creates multiple new records in the database.
 
         Args:
             new_records (List[EntityType | BaseModel]): A list of new records to be created. Each record can be an
                 instance of EntityType or BaseModel.
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             List[EntityType]: A list of the created records.
@@ -68,78 +70,92 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
                 model_data = record.model_dump(exclude_unset=True)
                 new_records[index] = self.entity(**model_data)
 
-        self.db.add_all(new_records)
-        await self.db.flush()
+        db.add_all(new_records)
+        await db.flush()
         return new_records
 
+    @staticmethod
     async def save(
-        self, new_record: EntityType | list[EntityType] = None
+        new_record: EntityType | list[EntityType] = None, db: AsyncSessionType = None
     ) -> EntityType | list[EntityType] | None:
         """Saves the given record(s) to the database by committing or flushing the session.
 
         Args:
             new_record (EntityType | List[EntityType], optional): The record(s) to be saved. If provided, the record(s)
                 will be refreshed after saving. Defaults to None.
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             EntityType | List[EntityType] | None: The saved record(s) or None if no record was provided.
 
         """
-        await self.commit_or_flush()
+        await AsyncBaseRepository.commit_or_flush(db)
 
         if new_record:
-            await self.refresh_record(new_record)
+            await AsyncBaseRepository.refresh_record(new_record, db)
         return new_record
 
-    async def commit_or_flush(self) -> None:
+    @staticmethod
+    async def commit_or_flush(db: AsyncSessionType = None) -> None:
         """Commits the current transaction if not in a nested transaction, otherwise flushes the session.
+
+        Args:
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             None
         """
-        await self.db.flush() if self.db.in_nested_transaction() else await self.db.commit()
+        await db.flush() if db.in_nested_transaction() else await db.commit()
 
+    @staticmethod
     async def refresh_record(
-        self, new_record: EntityType | list[EntityType]
+        new_record: EntityType | list[EntityType], db: AsyncSessionType = None
     ) -> EntityType | list[EntityType]:
         """Refreshes the given record(s) in the database session.
 
         Args:
             new_record (EntityType | List[EntityType]): The record(s) to be refreshed. It can be a single instance or
                 a list of instances.
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             EntityType | List[EntityType]: The refreshed record(s).
 
         """
-        await asyncio.gather(*(self.db.refresh(entity) for entity in new_record)) if isinstance(
+        await asyncio.gather(*(db.refresh(entity) for entity in new_record)) if isinstance(
             new_record, list
-        ) else await self.db.refresh(new_record)
+        ) else await db.refresh(new_record)
         return new_record
 
-    async def find_one(self, search_filter: str | FindOneOptions) -> EntityType | None:
+    async def find_one(
+        self, search_filter: str | FindOneOptions, db: AsyncSessionType = None
+    ) -> EntityType | None:
         """Finds a single record in the database that matches the given search filter.
 
         Args:
             search_filter (str | FindOneOptions): The search filter to apply. It can be a string or an instance of
                 FindOneOptions.
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             EntityType | None: The found record or None if no record matches the search filter.
 
         """
         select_statement = self.select_constructor.build_select_statement(search_filter)
-        result = (await self.db.execute(select_statement)).first()
+        result = (await db.execute(select_statement)).first()
 
         return result[0] if result else None
 
-    async def find_one_or_fail(self, search_filter: str | FindOneOptions) -> EntityType:
+    async def find_one_or_fail(
+        self, search_filter: str | FindOneOptions, db: AsyncSessionType = None
+    ) -> EntityType:
         """Finds a single record in the database that matches the given search filter or raises an exception if no
         record is found.
 
         Args:
             search_filter (str | FindOneOptions): The search filter to apply. It can be a string or an instance
                 of FindOneOptions.
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             EntityType: The found record.
@@ -150,7 +166,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         """
         select_statement = self.select_constructor.build_select_statement(search_filter)
         try:
-            result = (await self.db.execute(select_statement)).one()[0]
+            result = (await db.execute(select_statement)).one()[0]
         except NoResultFound:
             entity_name = self.entity.__name__
             message = f'Could not find any entity of type "{entity_name}" that matches with the search filter'
@@ -159,12 +175,15 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         return result
 
     @singledispatchmethod
-    async def find(self, stmt_or_filter: FindManyOptions | Select = None) -> Sequence[EntityType]:
+    async def find(
+        self, stmt_or_filter: FindManyOptions | Select = None, db: AsyncSessionType = None
+    ) -> Sequence[EntityType]:
         """Finds multiple records in the database that match the given statement or filter.
 
         Args:
             stmt_or_filter (FindManyOptions | Select, optional): The statement or filter to apply. It can be an instance
                 of FindManyOptions or a SQLAlchemy Select statement. Defaults to None.
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             Sequence[EntityType]: A sequence of the found records.
@@ -173,23 +192,28 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         raise NotImplementedError(f"Unsupported type: {type(stmt_or_filter)}")
 
     @find.register
-    async def _(self, options: FindManyOptions | dict | None) -> Sequence[EntityType]:
+    async def _(
+        self, options: FindManyOptions | dict | None, db: AsyncSessionType = None
+    ) -> Sequence[EntityType]:
         """Implementation when stmt_or_filter is an instance of FindManyOptions."""
         select_statement = self.select_constructor.build_select_statement(options)
-        return await self.find(select_statement)  # Call the method registered for Select
+        return await self.find(select_statement, db=db)  # Call the method registered for Select
 
     @find.register
-    async def _(self, select_stmt: Select) -> Sequence[EntityType]:
+    async def _(self, select_stmt: Select, db: AsyncSessionType = None) -> Sequence[EntityType]:
         """Implementation when stmt_or_filter is an instance of Select."""
-        return (await self.db.execute(select_stmt)).scalars().all()
+        return (await db.execute(select_stmt)).scalars().all()
 
     @singledispatchmethod
-    async def count(self, stmt_or_filter: FindManyOptions | Select = None) -> int:
+    async def count(
+        self, stmt_or_filter: FindManyOptions | Select = None, db: AsyncSessionType = None
+    ) -> int:
         """Counts the number of records in the database that match the given statement or filter.
 
         Args:
             stmt_or_filter (FindManyOptions | Select, optional): The statement or filter to apply. It can be an
                 instance of FindManyOptions or a SQLAlchemy Select statement. Defaults to None.
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             int: The count of records that match the given statement or filter.
@@ -198,22 +222,22 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         raise NotImplementedError(f"Unsupported type: {type(stmt_or_filter)}")
 
     @count.register
-    async def _(self, options: FindManyOptions | dict | None) -> int:
+    async def _(self, options: FindManyOptions | dict | None, db: AsyncSessionType = None) -> int:
         """Implementation when stmt_or_filter is an instance of FindManyOptions."""
         select_statement = self.select_constructor.build_select_statement(options)
-        return await self.count(select_statement)
+        return await self.count(select_statement, db=db)
 
     @count.register
-    async def _(self, select_stmt: Select) -> int:
+    async def _(self, select_stmt: Select, db: AsyncSessionType = None) -> int:
         """Implementation when stmt_or_filter is an instance of Select."""
         return (
-            await self.db.execute(
+            await db.execute(
                 select(func.count("*")).select_from(select_stmt.offset(None).limit(None).subquery())
             )
         ).scalar()
 
     async def find_and_count(
-        self, search_filter: FindManyOptions = None
+        self, search_filter: FindManyOptions = None, db: AsyncSessionType = None
     ) -> tuple[Sequence[EntityType], int]:
         """Finds multiple records in the database that match the given search filter and counts the total number of
         matching records.
@@ -221,6 +245,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         Args:
             search_filter (FindManyOptions, optional): The search filter to apply. It can be an instance of
             FindManyOptions. Defaults to None.
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             Tuple[Sequence[EntityType], int]: A tuple containing a sequence of the found records and the count of
@@ -228,13 +253,16 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
 
         """
         select_statement = self.select_constructor.build_select_statement(search_filter)
-        count = await self.count(select_statement)
-        result = await self.find(select_statement)
+        count = await self.count(select_statement, db)
+        result = await self.find(select_statement, db)
 
         return result, count
 
     async def update(
-        self, search_filter: str | FindOneOptions, model_data: BaseModel | dict
+        self,
+        search_filter: str | FindOneOptions,
+        model_data: BaseModel | dict,
+        db: AsyncSessionType = None,
     ) -> UpdateResult:
         """Updates a record in the database that matches the given search filter with the provided model data.
 
@@ -243,13 +271,14 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
                 FindOneOptions.
             model_data (BaseModel | dict): The data to update the record with. It can be an instance of BaseModel or
                 a dictionary.
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             UpdateResult: The result of the update operation, including the updated record, the number of affected
                 records, and any generated maps.
 
         """
-        record = await self.find_one_or_fail(search_filter)
+        record = await self.find_one_or_fail(search_filter, db)
 
         if isinstance(model_data, BaseModel):
             model_data = model_data.model_dump(exclude_unset=True)
@@ -262,8 +291,8 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
                 changes_made = True
 
         if changes_made:
-            await self.commit_or_flush()
-            await self.refresh_record(record)
+            await self.commit_or_flush(db)
+            await self.refresh_record(record, db)
 
         return UpdateResult(
             raw=[record] if changes_made else [],
@@ -272,13 +301,14 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         )
 
     async def delete(
-        self, delete_statement: str | FindOneOptions | ReturningDelete
+        self, delete_statement: str | FindOneOptions | ReturningDelete, db: AsyncSessionType = None
     ) -> DeleteResult:
         """Deletes a record in the database that matches the given delete statement.
 
         Args:
             delete_statement (str | FindOneOptions | ReturningDelete): The delete statement to apply. It can be a
                 string, an instance of FindOneOptions, or a SQLAlchemy ReturningDelete statement.
+            db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
             DeleteResult: The result of the delete operation, including the raw result and the number of affected
@@ -286,11 +316,11 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
 
         """
         if isinstance(delete_statement, Delete):
-            raw = (await self.db.execute(delete_statement)).all()
+            raw = (await db.execute(delete_statement)).all()
         else:
-            record = await self.find_one_or_fail(delete_statement)
-            await self.db.delete(record)
+            record = await self.find_one_or_fail(delete_statement, db)
+            await db.delete(record)
             raw = [record.id]
 
-        await self.commit_or_flush()
+        await self.commit_or_flush(db)
         return DeleteResult(raw=raw, affected=len(raw))

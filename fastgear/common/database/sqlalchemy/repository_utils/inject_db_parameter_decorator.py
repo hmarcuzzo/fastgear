@@ -5,13 +5,11 @@ from inspect import iscoroutinefunction, signature
 from types import UnionType
 from typing import Any, TypeVar, Union, get_args, get_origin
 
-from fastgear.common.database.sqlalchemy.session import AllSessionType
-from fastgear.variables import db_session
+from fastgear.common.database.sqlalchemy.session import AllSessionType, db_session
 
 ClassType = TypeVar("ClassType")
 
 
-# TODO: Deprecate for the moment - Remove in the future
 def inject_db_parameter_decorator(cls: type[ClassType]) -> type[ClassType]:
     """Class decorator that modifies methods of the given class to automatically inject a default parameter value
     if it is not already present in the method's arguments. It applies another decorator,
@@ -25,7 +23,7 @@ def inject_db_parameter_decorator(cls: type[ClassType]) -> type[ClassType]:
 
     """
 
-    def decorate_method(attr_value):
+    def decorate_method(attr_value: Any) -> Any:
         if isinstance(attr_value, staticmethod | classmethod):
             func = attr_value.__func__
             decorated_func = inject_db_parameter_if_missing(func)
@@ -90,7 +88,7 @@ def inject_db_parameter_if_missing(func: Callable[..., Any]) -> Callable[..., An
         return isinstance(annotation, type) and issubclass(annotation, AllSessionType)
 
     @wraps(func)
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args, **kwargs) -> Any:
         args, kwargs = db_session_injection(*args, **kwargs)
         if iscoroutinefunction(func):
             return await func(*args, **kwargs)

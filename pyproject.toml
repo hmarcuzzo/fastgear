@@ -67,6 +67,7 @@ fixable = ["ALL"]  # Fix all fixable issues
 select = ["ALL"]
 extend-select = ["I"]
 ignore = [
+    "ARG005",
     "B027",
     "B904",
     "COM812",

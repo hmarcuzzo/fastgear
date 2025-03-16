@@ -11,7 +11,7 @@ UTILS_CALLABLES = {
     "http_db_session_middleware": lambda app, **kwargs: app.add_middleware(
         DBSessionMiddleware, **kwargs
     ),
-    "pagination": lambda app: add_pagination(app),
+    "pagination": lambda app, **kwargs: add_pagination(app),
 }
 
 

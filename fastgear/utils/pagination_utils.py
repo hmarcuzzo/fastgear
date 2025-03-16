@@ -37,7 +37,7 @@ class PaginationUtils:
             search = self._remove_duplicate_params(search)
             paging_options["search"] = self._create_pagination_search(search)
             self._check_and_raise_for_invalid_search_filters(
-                paging_options["search"], find_all_query,
+                paging_options["search"], find_all_query
             )
 
         return paging_options
@@ -64,7 +64,7 @@ class PaginationUtils:
 
     @staticmethod
     def sort_data(
-        paging_options: Pagination, entity: EntityType, paging_data: FindManyOptions,
+        paging_options: Pagination, entity: EntityType, paging_data: FindManyOptions
     ) -> None:
         if "sort" not in paging_options:
             return
@@ -80,7 +80,7 @@ class PaginationUtils:
 
     @staticmethod
     def search_data(
-        paging_options: Pagination, entity: EntityType, paging_data: FindManyOptions,
+        paging_options: Pagination, entity: EntityType, paging_data: FindManyOptions
     ) -> None:
         if "search" not in paging_options:
             return
@@ -115,7 +115,7 @@ class PaginationUtils:
         paging_data.setdefault("where", []).append(
             or_(*where_clauses)
             if not any(isinstance(where_clause, dict) for where_clause in where_clauses)
-            else where_clauses,
+            else where_clauses
         )
 
     @staticmethod
@@ -128,7 +128,7 @@ class PaginationUtils:
         if PaginationUtils.validate_columns(list(set(selected_columns)), columns_query):
             (paging_options, selected_columns) = (
                 PaginationUtils.generating_selected_relationships_and_columns(
-                    paging_options, list(set(selected_columns)), columns_query, entity,
+                    paging_options, list(set(selected_columns)), columns_query, entity
                 )
             )
         else:
@@ -137,7 +137,7 @@ class PaginationUtils:
     @staticmethod
     def format_skip_take_options(paging_options: Pagination) -> FindManyOptions:
         return FindManyOptions(
-            skip=(paging_options["skip"] - 1) * paging_options["take"], take=paging_options["take"],
+            skip=(paging_options["skip"] - 1) * paging_options["take"], take=paging_options["take"]
         )
 
     @staticmethod
@@ -150,7 +150,7 @@ class PaginationUtils:
         for sort_param in sort_params:
             sort_param_split = sort_param.split(":", 1)
             pagination_sorts.append(
-                PaginationSort(field=sort_param_split[0], by=sort_param_split[1]),
+                PaginationSort(field=sort_param_split[0], by=sort_param_split[1])
             )
         return pagination_sorts
 
@@ -160,25 +160,25 @@ class PaginationUtils:
         for search_param in search_params:
             search_param_split = search_param.split(":", 1)
             pagination_search.append(
-                PaginationSearch(field=search_param_split[0], value=search_param_split[1]),
+                PaginationSearch(field=search_param_split[0], value=search_param_split[1])
             )
         return pagination_search
 
     @staticmethod
     def _check_and_raise_for_invalid_sort_filters(
-        pagination_sorts: list[PaginationSort], order_by_query: OB = None,
+        pagination_sorts: list[PaginationSort], order_by_query: OB = None
     ) -> None:
         if order_by_query and not PaginationUtils._is_valid_sort_params(
-            pagination_sorts, order_by_query,
+            pagination_sorts, order_by_query
         ):
             raise BadRequestException("Invalid sort filters")
 
     @staticmethod
     def _check_and_raise_for_invalid_search_filters(
-        pagination_search: list[PaginationSearch], find_all_query: F = None,
+        pagination_search: list[PaginationSearch], find_all_query: F = None
     ) -> None:
         if find_all_query and not PaginationUtils._is_valid_search_params(
-            pagination_search, find_all_query,
+            pagination_search, find_all_query
         ):
             raise BadRequestException("Invalid search filters")
 
@@ -213,7 +213,7 @@ class PaginationUtils:
 
     @staticmethod
     def validate_required_search_filter(
-        search: list[PaginationSearch], query_dto_fields: F,
+        search: list[PaginationSearch], query_dto_fields: F
     ) -> bool:
         search_fields = [search_param["field"] for search_param in search]
         for field in query_dto_fields:
@@ -251,8 +251,7 @@ class PaginationUtils:
 
         for column in selected_columns:
             if isinstance(column, str) and hasattr(entity, column):
-                selected_columns.remove(column)
-                selected_columns.append(getattr(entity, column))
+                selected_columns[selected_columns.index(column)] = getattr(entity, column)
 
         if not paging_options.get("relations"):
             paging_options.pop("relations", None)
@@ -265,7 +264,7 @@ class PaginationUtils:
 
     @staticmethod
     def generate_page(
-        items: list[EntityType | BaseModel], total: int, skip: int, page_size: int,
+        items: list[EntityType | BaseModel], total: int, skip: int, page_size: int
     ) -> Page[EntityType | BaseModel]:
         current_page = skip // page_size + 1
 
@@ -314,7 +313,7 @@ class PaginationUtils:
         """
         try:
             TypeAdapter(find_all_query).validate_python(
-                {search_param["field"]: search_param["value"]},
+                {search_param["field"]: search_param["value"]}
             )
             return True
         except (ValueError, TypeError) as e:
@@ -322,7 +321,7 @@ class PaginationUtils:
 
     @staticmethod
     def aggregate_values_by_field(
-        entries: list[PaginationSearch], find_all_query: F,
+        entries: list[PaginationSearch], find_all_query: F
     ) -> list[dict[str, str | list[str]]]:
         """Aggregates values by field from a list of pagination search entries.
 

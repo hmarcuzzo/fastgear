@@ -2,7 +2,7 @@
   <i>Python library for FastAPI, boosting SQLAlchemy and Redis with pagination, error handling, and session management.</i>
 </p>
 <p align="center" markdown=1>
-<a href="https://github.psa-cloud.com/gtf08/hil-fastapi-utils">
+<a href="https://github.com/hmarcuzzo/fastgear">
   <img src="https://img.shields.io/badge/Python-3.10 | 3.11 | 3.12-40cd60" alt="Supported Python Versions"/>
 </a>
 </p>

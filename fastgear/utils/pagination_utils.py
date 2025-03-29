@@ -74,10 +74,8 @@ class PaginationUtils:
 
             if hasattr(entity, sort_obj):
                 sort_obj = getattr(entity, sort_obj)
-                order = asc(sort_obj) if sort_param["by"] == "ASC" else desc(sort_obj)
-            else:
-                order = sort_param
 
+            order = asc(sort_obj) if sort_param["by"] == "ASC" else desc(sort_obj)
             paging_data["order_by"].append(order)
 
     @staticmethod

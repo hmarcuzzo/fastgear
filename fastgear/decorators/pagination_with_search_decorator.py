@@ -3,19 +3,19 @@ from typing import Annotated, Literal, TypeVar
 from fastapi import Query
 from pydantic import constr
 
-from fastgear.constants.regex_expressions import REGEX_ANY_CHAR, REGEX_ORDER_BY_QUERY
+from fastgear.constants import regex
 from fastgear.decorators.simple_pagination_decorator import SimplePaginationOptions
 from fastgear.types.custom_pages import custom_page_query, custom_size_query
 from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.generic_types_var import ColumnsQueryType, EntityType
-from fastgear.utils.pagination_utils import PaginationUtils
+from fastgear.utils import PaginationUtils
 
 FA = TypeVar("FA")
 OB = TypeVar("OB")
 
-SearchString = constr(pattern=f"^{REGEX_ANY_CHAR}:{REGEX_ANY_CHAR}$")
-SortString = constr(pattern=f"^{REGEX_ANY_CHAR}:{REGEX_ORDER_BY_QUERY}")
-ColumnsString = constr(pattern=f"^{REGEX_ANY_CHAR}$")
+SearchString = constr(pattern=f"^{regex.ANY_CHAR}:{regex.ANY_CHAR}$")
+SortString = constr(pattern=f"^{regex.ANY_CHAR}:{regex.ORDER_BY_QUERY}")
+ColumnsString = constr(pattern=f"^{regex.ANY_CHAR}$")
 
 
 class PaginationWithSearchOptions(SimplePaginationOptions):
@@ -59,7 +59,7 @@ class PaginationWithSearchOptions(SimplePaginationOptions):
         sort: Annotated[list[SortString] | None, Query(examples=["field:by"])] = None,
         columns: Annotated[list[ColumnsString] | None, Query(examples=["field"])] = None,
         search_all: Annotated[
-            str | None, Query(pattern=f"^{REGEX_ANY_CHAR}$", examples=["value"]),
+            str | None, Query(pattern=f"^{regex.ANY_CHAR}$", examples=["value"])
         ] = None,
     ) -> FindManyOptions:
         """Generates pagination and search options for a given entity.
@@ -84,11 +84,11 @@ class PaginationWithSearchOptions(SimplePaginationOptions):
 
         """
         self.pagination_utils.validate_block_attributes(
-            self.block_attributes, search, sort, columns, search_all,
+            self.block_attributes, search, sort, columns, search_all
         )
 
         paging_params = self.pagination_utils.generate_paging_parameters(
-            page, size, search, sort, self.find_all_query, self.order_by_query,
+            page, size, search, sort, self.find_all_query, self.order_by_query
         )
 
         return self.pagination_utils.get_paging_data(

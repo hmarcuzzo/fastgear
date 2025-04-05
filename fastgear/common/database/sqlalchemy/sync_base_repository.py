@@ -166,6 +166,7 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
                 f'Could not find any entity of type "{entity_name}" that matches with the '
                 f"search filter"
             )
+            self.logger.debug(message)
             raise NotFoundException(message, [entity_name])
 
         return result
@@ -185,7 +186,9 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
             Sequence[EntityType]: A sequence of found records.
 
         """
-        raise NotImplementedError(f"Unsupported type: {type(stmt_or_filter)}")
+        message = f"Unsupported type: {type(stmt_or_filter)}"
+        self.logger.debug(message)
+        raise NotImplementedError(message)
 
     @find.register
     def _(
@@ -215,7 +218,9 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
             int: The count of records that match the filter criteria or SQL statement.
 
         """
-        raise NotImplementedError(f"Unsupported type: {type(stmt_or_filter)}")
+        message = f"Unsupported type: {type(stmt_or_filter)}"
+        self.logger.debug(message)
+        raise NotImplementedError(message)
 
     @count.register
     def _(self, options: FindManyOptions | dict | None, db: SyncSessionType = None) -> int:

@@ -1,3 +1,4 @@
+import logging
 import typing
 from math import ceil
 from typing import Any, TypeVar
@@ -14,6 +15,8 @@ from fastgear.types.pagination import Pagination, PaginationSearch, PaginationSo
 
 F = TypeVar("F")
 OB = TypeVar("OB")
+
+logger = logging.getLogger(__name__)
 
 
 class PaginationUtils:
@@ -132,7 +135,9 @@ class PaginationUtils:
                 )
             )
         else:
-            raise BadRequestException("Invalid columns")
+            message = f"Invalid columns: {selected_columns}"
+            logger.info(message)
+            raise BadRequestException(message)
 
     @staticmethod
     def format_skip_take_options(paging_options: Pagination) -> FindManyOptions:
@@ -171,7 +176,9 @@ class PaginationUtils:
         if order_by_query and not PaginationUtils._is_valid_sort_params(
             pagination_sorts, order_by_query
         ):
-            raise BadRequestException("Invalid sort filters")
+            message = f"Invalid sort filters: {pagination_sorts}"
+            logger.info(message)
+            raise BadRequestException(message)
 
     @staticmethod
     def _check_and_raise_for_invalid_search_filters(
@@ -201,6 +208,7 @@ class PaginationUtils:
         try:
             search_params = PaginationUtils.aggregate_values_by_field(search, find_all_query)
         except KeyError as e:
+            logger.info(f"Invalid search filter: {e}")
             raise BadRequestException(f"Invalid search filters: {e}")
         for search_param in search_params:
             if (
@@ -288,6 +296,7 @@ class PaginationUtils:
 
         for attribute in block_attributes:
             if attribute in attributes and attributes[attribute] is not None:
+                logger.info(f"Invalid block attribute: {attribute}")
                 raise BadRequestException(
                     f"The attribute '{attribute}' is blocked in this route and cannot be used.",
                     loc=[attribute],
@@ -317,6 +326,7 @@ class PaginationUtils:
             )
             return True
         except (ValueError, TypeError) as e:
+            logger.info(f"Invalid search value: {e}")
             raise BadRequestException(f"Invalid search value: {e}")
 
     @staticmethod

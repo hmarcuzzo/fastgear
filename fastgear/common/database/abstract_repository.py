@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, Generic, TypeVar
@@ -24,6 +25,8 @@ class AbstractRepository(ABC, Generic[EntityType]):
         self.entity = entity
         self.select_constructor = SelectConstructor(entity)
         self.repo_utils = BaseRepositoryUtils()
+
+        self.logger = logging.getLogger(self.__class__.__module__)
 
     @abstractmethod
     def create(self, new_record: EntityType | Any, db: SessionType) -> EntityType:

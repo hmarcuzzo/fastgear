@@ -170,6 +170,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         except NoResultFound:
             entity_name = self.entity.__name__
             message = f'Could not find any entity of type "{entity_name}" that matches with the search filter'
+            self.logger.debug(message)
             raise NotFoundException(message, [entity_name])
 
         return result
@@ -189,7 +190,9 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
             Sequence[EntityType]: A sequence of the found records.
 
         """
-        raise NotImplementedError(f"Unsupported type: {type(stmt_or_filter)}")
+        message = f"Unsupported type: {type(stmt_or_filter)}"
+        self.logger.debug(message)
+        raise NotImplementedError(message)
 
     @find.register
     async def _(
@@ -219,7 +222,9 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
             int: The count of records that match the given statement or filter.
 
         """
-        raise NotImplementedError(f"Unsupported type: {type(stmt_or_filter)}")
+        message = f"Unsupported type: {type(stmt_or_filter)}"
+        self.logger.debug(message)
+        raise NotImplementedError(message)
 
     @count.register
     async def _(self, options: FindManyOptions | dict | None, db: AsyncSessionType = None) -> int:

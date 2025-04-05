@@ -3,8 +3,8 @@ import contextlib
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 
-from fastgear.handlers.http_exceptions_handler import HttpExceptionsHandler
-from fastgear.middlewares.db_session_middleware import DBSessionMiddleware
+from fastgear.handlers import HttpExceptionsHandler
+from fastgear.middlewares import DBSessionMiddleware
 
 UTILS_CALLABLES = {
     "http_exceptions_handler": lambda app, **kwargs: HttpExceptionsHandler(app, **kwargs),

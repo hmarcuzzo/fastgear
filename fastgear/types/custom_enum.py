@@ -1,6 +1,6 @@
 from enum import Enum
 
-from fastgear.utils.enum_utils import EnumUtils
+from fastgear.utils import EnumUtils
 
 
 class CustomEnum(Enum):

@@ -79,12 +79,15 @@ ignore = [
     "B027",
     "B904",
     "COM812",
+    "DTZ005",
     "E501",
     "TD002",
     "TD003",
     "FIX002",
     "G004",
     "PLR0913",
+    "PERF203",
+    "N818",
     "ARG",
     "ANN",
     "D",
@@ -102,5 +105,5 @@ line-ending = "auto"
 # ==== pytest ====
 [tool.pytest.ini_options]
 minversion = "8.0.0"
-addopts = "-ra -q --force-testdox --cov=ferp"
+addopts = "-ra -q --force-testdox --cov=fastgear"
 testpaths = ["tests/"]

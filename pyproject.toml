@@ -99,5 +99,8 @@ indent-style = "space"
 skip-magic-trailing-comma = true
 line-ending = "auto"
 
-
-
+# ==== pytest ====
+[tool.pytest.ini_options]
+minversion = "8.0.0"
+addopts = "-ra -q --force-testdox --cov=ferp"
+testpaths = ["tests/"]

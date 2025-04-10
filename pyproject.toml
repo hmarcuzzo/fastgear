@@ -104,5 +104,5 @@ line-ending = "auto"
 # ==== pytest ====
 [tool.pytest.ini_options]
 minversion = "8.0.0"
-addopts = "-ra -q --force-testdox --cov=fastgear"
+addopts = "-ra -q --force-testdox --cov=fastgear --cov-branch --cov-report=xml"
 testpaths = ["tests/"]

@@ -31,13 +31,13 @@
 
 
 ## Features
-- **Fully Async**: Leverages Python's async capabilities for non-blocking database operations.
-- **SQLAlchemy 2.0**: Works with the latest SQLAlchemy version for robust database interactions.
-- **Redis Support**: Provides support for Redis for caching and other operations.
-- **Dynamic Query Building**: Supports building simple queries dynamically, including filtering, sorting, and pagination.
-- **Built-in Offset Pagination**: Comes with ready-to-use offset pagination.
-- **Custom Error Handling**: Provides custom error handling for better debugging and user experience.
-- **Session Management**: Automatically manages database sessions within a context manager.
+-  ⚡ **Fully Async**: Leverages Python's async capabilities for non-blocking database operations.
+- 🗄️ **SQLAlchemy 2.0**: Works with the latest SQLAlchemy version for robust database interactions.
+- 🔴 **Redis Support**: Provides support for Redis for caching and other operations.
+- 🔍 **Dynamic Query Building**: Supports building simple queries dynamically, including filtering, sorting, and pagination.
+- 📊 **Built-in Offset Pagination**: Comes with ready-to-use offset pagination.
+- 🛡️ **Custom Error Handling**: Provides custom error handling for better debugging and user experience.
+- 🔄 **Session Management**: Automatically manages database sessions within a context manager.
 
 ## Requirements
 

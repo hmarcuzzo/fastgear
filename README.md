@@ -5,6 +5,9 @@
 <a href="https://github.com/hmarcuzzo/fastgear">
   <img src="https://img.shields.io/badge/Python-3.10 | 3.11 | 3.12 | 3.13-40cd60" alt="Supported Python Versions"/>
 </a>
+<a href="https://pypi.org/project/fastgear/">
+  <img src="https://img.shields.io/pypi/v/fastgear?color=%2334D058&label=pypi%20package" alt="PyPi Version"/>
+</a>
 <a href="https://github.com/hmarcuzzo/fastgear/actions/workflows/ci.yml">
   <img src="https://github.com/hmarcuzzo/fastgear/actions/workflows/ci.yml/badge.svg" alt="Tests"/>
 </a>

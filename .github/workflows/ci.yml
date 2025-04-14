@@ -18,7 +18,7 @@ jobs:
       - name: Set up Python and Poetry
         uses: ./.github/actions/setup-python-poetry
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Install dependencies
         run: poetry install --with dev --no-root

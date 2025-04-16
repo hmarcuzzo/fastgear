@@ -1,14 +1,18 @@
 name: Publish Python Package
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
     branches:
       - main
 
 jobs:
-  publish:
-    needs: [CI]
-    if: contains(github.event.head_commit.message, '🔖')
+  release:
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      contains(github.event.workflow_run.head_commit.message, '🔖')
     runs-on: ubuntu-latest
 
     steps:

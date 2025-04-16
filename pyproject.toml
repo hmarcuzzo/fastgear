@@ -91,6 +91,7 @@ ignore = [
     "D",
     "EM",
     "RUF",
+    "S",
     "TD",
     "TRY"
 ]

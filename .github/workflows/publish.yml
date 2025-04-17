@@ -8,8 +8,14 @@ on:
     branches:
       - main
 
+concurrency:
+  group: publish-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
 jobs:
   check-conditions:
+    # Only run this job when all workflows have completed
+    if: ${{ github.event.workflow_run.conclusion != 'skipped' }}
     runs-on: ubuntu-latest
     outputs:
       should_publish: ${{ steps.check-all-workflows.outputs.should_publish }}
@@ -19,7 +25,7 @@ jobs:
         if: contains(github.event.workflow_run.head_commit.message, '🔖')
         run: echo "has_tag=true" >> $GITHUB_OUTPUT
 
-      - name: Check all workflows
+      - name: Check required workflows
         id: check-all-workflows
         if: steps.check-commit.outputs.has_tag == 'true'
         env:
@@ -39,7 +45,7 @@ jobs:
 
           # Check if both required workflows succeeded
           if [[ "$tests_status" == "success" && "$py_compat_status" == "success" ]]; then
-            echo "Both Tests and Python Compatibility workflows succeeded"
+            echo "Required workflows succeeded"
             echo "should_publish=true" >> $GITHUB_OUTPUT
           else
             echo "Required workflows did not succeed"
@@ -70,6 +76,4 @@ jobs:
         run: poetry build
 
       - name: Publish to PyPI
-        env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
-        run: poetry publish --no-interaction --username __token__ --password $POETRY_PYPI_TOKEN_PYPI
+        run: poetry publish --no-interaction --username __token__ --password ${{ secrets.PYPI_TOKEN }}

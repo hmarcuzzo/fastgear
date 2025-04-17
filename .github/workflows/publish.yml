@@ -2,7 +2,7 @@ name: Publish Python Package
 
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["Linting", "Tests", "Python Compatibility"]
     types:
       - completed
     branches:
@@ -25,9 +25,9 @@ jobs:
     needs: check-conditions
     if: needs.check-conditions.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
-    environment: 
-      name: production
-      url: https://pypi.org/p/nexytech-fastgear
+    environment:
+      name: PyPI
+      url: https://pypi.org/project/fastgear/
 
     steps:
       - name: Checkout code

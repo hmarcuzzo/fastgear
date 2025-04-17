@@ -33,11 +33,19 @@ jobs:
 
           while [ $attempt -le $max_attempts ]; do
             # Get all workflow runs for this commit
+            echo "Checking workflows for commit $COMMIT_SHA..."
+            
+            # Get the workflow runs in a more reliable way
             workflow_runs=$(gh api repos/$REPO/actions/runs \
-              --jq ".workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\") | {id: .id, status: .status}")
+              --paginate \
+              --jq ".workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\") | {id: .id, name: .name, status: .status}")
 
-            # Check if any workflow is still running
+            echo "Current workflow runs:"
+            echo "$workflow_runs" | jq .
+
+            # Count running workflows
             running_workflows=$(echo "$workflow_runs" | jq -r 'select(.status != "completed") | .id' | wc -l)
+            echo "Running workflows count: $running_workflows"
 
             if [ "$running_workflows" -eq "0" ]; then
               echo "All workflows completed"

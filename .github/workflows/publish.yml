@@ -14,8 +14,14 @@ jobs:
     outputs:
       should_publish: ${{ steps.check-all-workflows.outputs.should_publish }}
     steps:
+      - name: Check commit message
+        id: check-commit
+        if: contains(github.event.workflow_run.head_commit.message, '🔖')
+        run: echo "has_tag=true" >> $GITHUB_OUTPUT
+
       - name: Wait for other workflows
         id: workflow-check
+        if: steps.check-commit.outputs.has_tag == 'true'
         timeout-minutes: 8
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -26,9 +32,12 @@ jobs:
           attempt=1
 
           while [ $attempt -le $max_attempts ]; do
-            # Check if other workflows are still running
-            running_workflows=$(gh api repos/$REPO/actions/runs \
-              --jq "[.workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\" and .status != \"completed\")] | length")
+            # Get all workflow runs for this commit
+            workflow_runs=$(gh api repos/$REPO/actions/runs \
+              --jq ".workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\") | {id: .id, status: .status}")
+
+            # Check if any workflow is still running
+            running_workflows=$(echo "$workflow_runs" | jq -r 'select(.status != "completed") | .id' | wc -l)
 
             if [ "$running_workflows" -eq "0" ]; then
               echo "All workflows completed"
@@ -44,13 +53,6 @@ jobs:
           echo "Timeout waiting for workflows to complete"
           echo "all_complete=false" >> $GITHUB_OUTPUT
           exit 1
-
-      - name: Check commit message
-        id: check-commit
-        if: |
-          steps.workflow-check.outputs.all_complete == 'true' &&
-          contains(github.event.workflow_run.head_commit.message, '🔖')
-        run: echo "has_tag=true" >> $GITHUB_OUTPUT
 
       - name: Check required workflows
         id: check-all-workflows

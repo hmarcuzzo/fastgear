@@ -28,7 +28,7 @@ jobs:
           while [ $attempt -le $max_attempts ]; do
             # Check if other workflows are still running
             running_workflows=$(gh api repos/$REPO/actions/runs \
-              --jq "[.workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\" and .status != 'completed')] | length")
+              --jq "[.workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\" and .status != \"completed\")] | length")
 
             if [ "$running_workflows" -eq "0" ]; then
               echo "All workflows completed"

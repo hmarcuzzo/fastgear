@@ -2,7 +2,7 @@ name: Publish Python Package
 
 on:
   workflow_run:
-    workflows: ["Linting", "Tests", "Python Compatibility"]
+    workflows: ["Tests", "Python Compatibility", "Linting"]
     types:
       - completed
     branches:
@@ -10,16 +10,41 @@ on:
 
 jobs:
   check-conditions:
-    if: |
-      github.event.workflow_run.conclusion == 'success' &&
-      contains(github.event.workflow_run.head_commit.message, '🔖')
     runs-on: ubuntu-latest
     outputs:
-      should_publish: ${{ steps.check.outputs.should_publish }}
+      should_publish: ${{ steps.check-all-workflows.outputs.should_publish }}
     steps:
-      - name: Check conditions
-        id: check
-        run: echo "should_publish=true" >> $GITHUB_OUTPUT
+      - name: Check commit message
+        id: check-commit
+        if: contains(github.event.workflow_run.head_commit.message, '🔖')
+        run: echo "has_tag=true" >> $GITHUB_OUTPUT
+
+      - name: Check all workflows
+        id: check-all-workflows
+        if: steps.check-commit.outputs.has_tag == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Get status of Tests workflow
+          tests_status=$(gh api repos/$REPO/actions/workflows/tests.yml/runs \
+            --jq ".workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\") | .conclusion" | head -n 1)
+          echo "Tests workflow status: $tests_status"
+
+          # Get status of Python Compatibility workflow
+          py_compat_status=$(gh api repos/$REPO/actions/workflows/python-versions.yml/runs \
+            --jq ".workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\") | .conclusion" | head -n 1)
+          echo "Python Compatibility workflow status: $py_compat_status"
+
+          # Check if both required workflows succeeded
+          if [[ "$tests_status" == "success" && "$py_compat_status" == "success" ]]; then
+            echo "Both Tests and Python Compatibility workflows succeeded"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          else
+            echo "Required workflows did not succeed"
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+          fi
 
   release:
     needs: check-conditions

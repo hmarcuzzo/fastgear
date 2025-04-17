@@ -14,14 +14,14 @@ jobs:
     outputs:
       should_publish: ${{ steps.check-all-workflows.outputs.should_publish }}
     steps:
-#      - name: Check commit message
-#        id: check-commit
-#        if: contains(github.event.workflow_run.head_commit.message, '🔖')
-#        run: echo "has_tag=true" >> $GITHUB_OUTPUT
+      - name: Check commit message
+        id: check-commit
+        if: contains(github.event.workflow_run.head_commit.message, '🔖')
+        run: echo "has_tag=true" >> $GITHUB_OUTPUT
 
       - name: Wait for other workflows
         id: workflow-check
-#        if: steps.check-commit.outputs.has_tag == 'true'
+        if: steps.check-commit.outputs.has_tag == 'true'
         timeout-minutes: 8
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -65,7 +65,6 @@ jobs:
         id: check-all-workflows
         if: |
           steps.workflow-check.outputs.all_complete == 'true'
-# steps.check-commit.outputs.has_tag == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}

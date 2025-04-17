@@ -1,0 +1,27 @@
+name: Linting
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  lint:
+    name: Lint with Ruff
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python and Poetry
+        uses: ./.github/actions/setup-python-poetry
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: poetry install --with dev --no-root
+
+      - name: Run Ruff linter
+        run: poetry run ruff check .

@@ -64,8 +64,8 @@ jobs:
       - name: Check required workflows
         id: check-all-workflows
         if: |
-          steps.workflow-check.outputs.all_complete == 'true' &&
-          steps.check-commit.outputs.has_tag == 'true'
+          steps.workflow-check.outputs.all_complete == 'true'
+# steps.check-commit.outputs.has_tag == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}

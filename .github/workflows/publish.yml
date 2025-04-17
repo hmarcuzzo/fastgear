@@ -14,10 +14,10 @@ jobs:
     outputs:
       should_publish: ${{ steps.check-all-workflows.outputs.should_publish }}
     steps:
-      - name: Check commit message
-        id: check-commit
-        if: contains(github.event.workflow_run.head_commit.message, '🔖')
-        run: echo "has_tag=true" >> $GITHUB_OUTPUT
+#      - name: Check commit message
+#        id: check-commit
+#        if: contains(github.event.workflow_run.head_commit.message, '🔖')
+#        run: echo "has_tag=true" >> $GITHUB_OUTPUT
 
       - name: Wait for other workflows
         id: workflow-check
@@ -27,39 +27,38 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
           REPO: ${{ github.repository }}
+          CURRENT_RUN: ${{ github.run_id }}
         run: |
           max_attempts=15
           attempt=1
 
           while [ $attempt -le $max_attempts ]; do
-            # Get all workflow runs for this commit
-            echo "Checking workflows for commit $COMMIT_SHA..."
-            
-            # Get the workflow runs in a more reliable way
+            echo "🔍 Checking runs for commit $COMMIT_SHA (excluding this run #$CURRENT_RUN)..."
+
             workflow_runs=$(gh api repos/$REPO/actions/runs \
               --paginate \
-              --jq ".workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\") | {id: .id, name: .name, status: .status}")
+              --jq ".workflow_runs[]
+                     | select(.head_sha == \"$COMMIT_SHA\" and .id != $CURRENT_RUN)
+                     | {id: .id, name: .name, status: .status}")
 
-            echo "Current workflow runs:"
             echo "$workflow_runs" | jq .
-
-            # Count running workflows
-            running_workflows=$(echo "$workflow_runs" | jq -r 'select(.status != "completed") | .id' | wc -l)
-            echo "Running workflows count: $running_workflows"
+            running_workflows=$(echo "$workflow_runs" \
+              | jq -r 'select(.status != "completed") | .id' \
+              | wc -l)
+            echo "🟡 $running_workflows workflows are still running..."
 
             if [ "$running_workflows" -eq "0" ]; then
-              echo "All workflows completed"
+              echo "✅ All workflows have completed successfully."
               echo "all_complete=true" >> $GITHUB_OUTPUT
               exit 0
-            else
-              echo "Attempt $attempt: Some workflows are still running. Waiting 30 seconds..."
-              sleep 30
-              attempt=$((attempt + 1))
             fi
+
+            echo "⏳ Attempt $attemp: Waiting for workflows to complete..."
+            sleep 30
+            attempt=$((attempt + 1))
           done
 
-          echo "Timeout waiting for workflows to complete"
-          echo "all_complete=false" >> $GITHUB_OUTPUT
+          echo "::error::Timeout após $max_attempts tentativas — alguns workflows não completaram a tempo."
           exit 1
 
       - name: Check required workflows

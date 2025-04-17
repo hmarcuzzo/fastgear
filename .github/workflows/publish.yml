@@ -1,97 +1,12 @@
 name: Publish Python Package
 
 on:
-  workflow_run:
-    workflows: ["Python Compatibility"]
+  release:
     types:
-      - completed
-    branches:
-      - main
+      - created
 
 jobs:
-  check-conditions:
-    runs-on: ubuntu-latest
-    outputs:
-      should_publish: ${{ steps.check-all-workflows.outputs.should_publish }}
-    steps:
-      - name: Check commit message
-        id: check-commit
-        if: contains(github.event.workflow_run.head_commit.message, '🔖')
-        run: echo "has_tag=true" >> $GITHUB_OUTPUT
-
-      - name: Wait for other workflows
-        id: workflow-check
-        if: steps.check-commit.outputs.has_tag == 'true'
-        timeout-minutes: 8
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
-          REPO: ${{ github.repository }}
-          CURRENT_RUN: ${{ github.run_id }}
-        run: |
-          max_attempts=15
-          attempt=1
-
-          while [ $attempt -le $max_attempts ]; do
-            echo "🔍 Checking runs for commit $COMMIT_SHA (excluding this run #$CURRENT_RUN)..."
-
-            workflow_runs=$(gh api repos/$REPO/actions/runs \
-              --paginate \
-              --jq ".workflow_runs[]
-                     | select(.head_sha == \"$COMMIT_SHA\" and .id != $CURRENT_RUN)
-                     | {id: .id, name: .name, status: .status}")
-
-            echo "$workflow_runs" | jq .
-            running_workflows=$(echo "$workflow_runs" \
-              | jq -r 'select(.status != "completed") | .id' \
-              | wc -l)
-            echo "🟡 $running_workflows workflows are still running..."
-
-            if [ "$running_workflows" -eq "0" ]; then
-              echo "✅ All workflows have completed successfully."
-              echo "all_complete=true" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-
-            echo "⏳ Attempt $attemp: Waiting for workflows to complete..."
-            sleep 30
-            attempt=$((attempt + 1))
-          done
-
-          echo "::error::Timeout após $max_attempts tentativas — alguns workflows não completaram a tempo."
-          exit 1
-
-      - name: Check required workflows
-        id: check-all-workflows
-        if: |
-          steps.workflow-check.outputs.all_complete == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
-          REPO: ${{ github.repository }}
-        run: |
-          # Get status of Tests workflow
-          tests_status=$(gh api repos/$REPO/actions/workflows/tests.yml/runs \
-            --jq ".workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\") | .conclusion" | head -n 1)
-          echo "Tests workflow status: $tests_status"
-
-          # Get status of Python Compatibility workflow
-          py_compat_status=$(gh api repos/$REPO/actions/workflows/python-versions.yml/runs \
-            --jq ".workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\") | .conclusion" | head -n 1)
-          echo "Python Compatibility workflow status: $py_compat_status"
-
-          # Check if both required workflows succeeded
-          if [[ "$tests_status" == "success" && "$py_compat_status" == "success" ]]; then
-            echo "Required workflows succeeded"
-            echo "should_publish=true" >> $GITHUB_OUTPUT
-          else
-            echo "Required workflows did not succeed"
-            echo "should_publish=false" >> $GITHUB_OUTPUT
-          fi
-
   release:
-    needs: check-conditions
-    if: needs.check-conditions.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     environment:
       name: PyPI

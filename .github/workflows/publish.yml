@@ -2,34 +2,61 @@ name: Publish Python Package
 
 on:
   workflow_run:
-    workflows: ["Tests", "Python Compatibility", "Linting"]
+    workflows: ["Python Compatibility"]
     types:
       - completed
     branches:
       - main
 
-concurrency:
-  group: publish-${{ github.event.workflow_run.head_sha }}
-  cancel-in-progress: true
-
 jobs:
   check-conditions:
-    # Only run this job when all workflows have completed
-    if: ${{ github.event.workflow_run.conclusion != 'skipped' }}
     runs-on: ubuntu-latest
     outputs:
       should_publish: ${{ steps.check-all-workflows.outputs.should_publish }}
     steps:
+      - name: Wait for other workflows
+        id: workflow-check
+        timeout-minutes: 8
+        env:
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          max_attempts=15
+          attempt=1
+          
+          while [ $attempt -le $max_attempts ]; do
+            # Check if other workflows are still running
+            running_workflows=$(gh api repos/$REPO/actions/runs \
+              --jq "[.workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\" and .status != 'completed')] | length")
+            
+            if [ "$running_workflows" -eq "0" ]; then
+              echo "All workflows completed"
+              echo "all_complete=true" >> $GITHUB_OUTPUT
+              exit 0
+            else
+              echo "Attempt $attempt: Some workflows are still running. Waiting 30 seconds..."
+              sleep 30
+              attempt=$((attempt + 1))
+            fi
+          done
+          
+          echo "Timeout waiting for workflows to complete"
+          echo "all_complete=false" >> $GITHUB_OUTPUT
+          exit 1
+
       - name: Check commit message
         id: check-commit
-        if: contains(github.event.workflow_run.head_commit.message, '🔖')
+        if: |
+          steps.workflow-check.outputs.all_complete == 'true' &&
+          contains(github.event.workflow_run.head_commit.message, '🔖')
         run: echo "has_tag=true" >> $GITHUB_OUTPUT
 
       - name: Check required workflows
         id: check-all-workflows
-        if: steps.check-commit.outputs.has_tag == 'true'
+        if: |
+          steps.workflow-check.outputs.all_complete == 'true' &&
+          steps.check-commit.outputs.has_tag == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
           COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
           REPO: ${{ github.repository }}
         run: |
@@ -76,4 +103,6 @@ jobs:
         run: poetry build
 
       - name: Publish to PyPI
-        run: poetry publish --no-interaction --username __token__ --password ${{ secrets.PYPI_TOKEN }}
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: poetry publish --no-interaction --username __token__ --password $PYPI_TOKEN

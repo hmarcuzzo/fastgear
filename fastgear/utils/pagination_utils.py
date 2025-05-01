@@ -1,8 +1,8 @@
-import logging
 import typing
 from math import ceil
 from typing import Any, TypeVar
 
+from loguru import logger
 from pydantic import BaseModel, TypeAdapter
 from sqlalchemy import String, asc, cast, desc, inspect, or_
 from sqlalchemy_utils import cast_if, get_columns
@@ -15,8 +15,6 @@ from fastgear.types.pagination import Pagination, PaginationSearch, PaginationSo
 
 F = TypeVar("F")
 OB = TypeVar("OB")
-
-logger = logging.getLogger(__name__)
 
 
 class PaginationUtils:

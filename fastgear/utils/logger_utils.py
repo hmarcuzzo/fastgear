@@ -1,15 +1,21 @@
-import logging
 import sys
+from typing import TYPE_CHECKING
+
+from loguru import logger
+
+if TYPE_CHECKING:
+    from loguru import Record
 
 
 class LoggerUtils:
     @staticmethod
     def configure_logging(level: int | str) -> None:
-        logger = logging.getLogger()
-        if not logger.handlers:
-            handler = logging.StreamHandler(sys.stdout)
-            formatter = logging.Formatter("%(asctime)s - %(name)s - [%(levelname)s]: %(message)s")
-            handler.setFormatter(formatter)
+        logger.remove()
 
-            logger.setLevel(level)
-            logger.addHandler(handler)
+        logger.add(sys.stdout, level=level, format=LoggerUtils._formatter, enqueue=True)
+
+    @staticmethod
+    def _formatter(record: "Record") -> str:
+        ts = record["time"].strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        who = record["extra"].get("name", record["module"])
+        return f"{ts} - {who} - [<level>{record['level'].name}</level>]: {record['message']}\n"

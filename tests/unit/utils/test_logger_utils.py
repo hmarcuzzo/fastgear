@@ -1,11 +1,15 @@
 import sys
-from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
-from loguru import logger
+from loguru import Record, logger
 
 from fastgear.utils.logger_utils import LoggerUtils
+from tests.fixtures.utils.logger_fixtures import (  # noqa: F401
+    log_levels,
+    mock_record,
+    mock_record_without_name,
+)
 
 
 @pytest.mark.describe("🧪  LoggerUtils")
@@ -21,46 +25,25 @@ class TestLoggerUtils:
             )
 
     @pytest.mark.it("✅  Should format log record correctly")
-    def test_formatter(self):
-        mock_record = {
-            "time": datetime(2024, 3, 20, 10, 30, 45, 123456, tzinfo=timezone.utc),
-            "extra": {"name": "test_module"},
-            "module": "test_module",
-            "level": type("Level", (), {"name": "INFO"}),
-            "message": "Test message",
-        }
-
+    def test_formatter(self, mock_record: Record) -> None:
         formatted = LoggerUtils._formatter(mock_record)
         expected = "2024-03-20 10:30:45.123 - test_module - [<level>INFO</level>]: Test message\n"
         assert formatted == expected
 
     @pytest.mark.it("✅  Should use module name when name is not in extra")
-    def test_formatter_without_name(self):
-        mock_record = {
-            "time": datetime(2024, 3, 20, 10, 30, 45, 123456, tzinfo=timezone.utc),
-            "extra": {},
-            "module": "test_module",
-            "level": type("Level", (), {"name": "ERROR"}),
-            "message": "Error message",
-        }
-
-        formatted = LoggerUtils._formatter(mock_record)
+    def test_formatter_without_name(self, mock_record_without_name: Record) -> None:
+        formatted = LoggerUtils._formatter(mock_record_without_name)
         expected = "2024-03-20 10:30:45.123 - test_module - [<level>ERROR</level>]: Error message\n"
         assert formatted == expected
 
     @pytest.mark.it("✅  Should handle different log levels")
-    def test_formatter_different_levels(self):
-        levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    def test_formatter_different_levels(self, mock_record: Record, log_levels: list[str]) -> None:
+        for level in log_levels:
+            # Create a new record with the current level
+            current_record = mock_record.copy()
+            current_record["level"] = type("Level", (), {"name": level})
+            current_record["message"] = f"{level} message"
 
-        for level in levels:
-            mock_record = {
-                "time": datetime(2024, 3, 20, 10, 30, 45, 123456, tzinfo=timezone.utc),
-                "extra": {"name": "test_module"},
-                "module": "test_module",
-                "level": type("Level", (), {"name": level}),
-                "message": f"{level} message",
-            }
-
-            formatted = LoggerUtils._formatter(mock_record)
+            formatted = LoggerUtils._formatter(current_record)
             expected = f"2024-03-20 10:30:45.123 - test_module - [<level>{level}</level>]: {level} message\n"
             assert formatted == expected

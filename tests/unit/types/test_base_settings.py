@@ -2,7 +2,7 @@ import pytest
 from pydantic_settings import PydanticBaseSettingsSource, TomlConfigSettingsSource
 
 from fastgear.types.base_settings import TomlBaseSettings
-from tests.fixtures.types import settings_sources  # noqa: F401
+from tests.fixtures.types.base_settings_fixtures import settings_sources  # noqa: F401
 
 
 @pytest.mark.describe("🧪  TomlBaseSettings")

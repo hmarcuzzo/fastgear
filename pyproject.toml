@@ -87,6 +87,7 @@ ignore = [
     "PLR0913",
     "PERF203",
     "N818",
+    "SLF001",
     "ARG",
     "ANN",
     "B",

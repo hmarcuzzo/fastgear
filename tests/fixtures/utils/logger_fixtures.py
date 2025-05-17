@@ -1,8 +1,6 @@
 from datetime import datetime, timezone
-from typing import cast
 
 import pytest
-from loguru import Record
 
 
 @pytest.fixture
@@ -22,22 +20,19 @@ def mock_record() -> dict:
 
 
 @pytest.fixture
-def mock_record_without_name() -> Record:
+def mock_record_without_name() -> dict:
     """Fixture that provides a mock record without name in extra.
 
     Returns:
-        Record: A mock record without name in extra field.
+        dict: A mock record without name in extra field.
     """
-    return cast(
-        Record,
-        {
-            "time": datetime(2024, 3, 20, 10, 30, 45, 123456, tzinfo=timezone.utc),
-            "extra": {},
-            "module": "test_module",
-            "level": type("Level", (), {"name": "ERROR"}),
-            "message": "Error message",
-        },
-    )
+    return {
+        "time": datetime(2024, 3, 20, 10, 30, 45, 123456, tzinfo=timezone.utc),
+        "extra": {},
+        "module": "test_module",
+        "level": type("Level", (), {"name": "ERROR"}),
+        "message": "Error message",
+    }
 
 
 @pytest.fixture

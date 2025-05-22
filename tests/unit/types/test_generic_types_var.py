@@ -1,25 +1,7 @@
 import pytest
-from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import DeclarativeBase
 
 from fastgear.types.generic_types_var import ColumnsQueryType, EntityType
-
-
-class TestBase(DeclarativeBase):
-    pass
-
-
-class TestEntity(TestBase):
-    __tablename__ = "test_entity"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-
-
-class TestModel(BaseModel):
-    id: int
-    name: str
+from tests.fixtures.types.generic_types_var_fixtures import TestEntity, TestModel  # noqa: F401
 
 
 @pytest.mark.describe("🧪  GenericTypesVar")

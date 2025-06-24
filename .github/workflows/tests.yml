@@ -21,7 +21,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install dependencies
-        run: uv pip install -r pyproject.toml --group test
+        run: uv sync --all-extras --test
 
       - name: Run tests
         run: |

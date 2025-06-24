@@ -9,52 +9,46 @@ license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
 dependencies = [
-    "sqlalchemy (>=2.0.38,<3.0.0)",
-    "uuid6 (>=2024.7.10,<2025.0.0)",
-    "sqlalchemy-utils (>=0.41.2,<0.42.0)",
-    "pydantic (>=2.10.6,<3.0.0)",
-    "fastapi (>=0.115.10,<0.116.0)",
-    "fastapi-pagination (>=0.12.34,<0.13.0)",
-    "pydantic-settings (>=2.8.1,<3.0.0)",
-    "loguru (>=0.7.3,<0.8.0)",
+    "fastapi>=0.115.13",
+    "fastapi-pagination>=0.13.2",
+    "loguru>=0.7.3",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.0",
+    "sqlalchemy>=2.0.41",
+    "sqlalchemy-utils>=0.41.2",
+    "uuid6>=2025.0.0",
 ]
 
 [project.optional-dependencies]
-redis = ["redis (>=5.2.1,<6.0.0)"]
+redis = [
+    "redis>=6.2.0",
+]
 
 
-[tool.poetry.group.dev]
-optional = true
+[tool.uv]
+default-groups = []
 
-[tool.poetry.group.dev.dependencies]
-# Code quality
-# ------------------------------------------------------------------------------
-pre-commit = "^4.1.0"
-ruff = "^0.9.9"
+[dependency-groups]
+dev = [
+    # ----------------------------------------
+    # Code quality
+    # ----------------------------------------
+    "pre-commit>=4.2.0",
+    "ruff>=0.12.0",
+]
 
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.6.14",
+    "mkdocstrings>=0.29.1",
+]
 
-[tool.poetry.group.test]
-optional = true
-
-[tool.poetry.group.test.dependencies]
-pytest = "^8.3.5"
-pytest-cov = "^6.1.1"
-pytest-testdox = "^3.1.0"
-faker = "^37.1.0"
-
-
-[tool.poetry.group.docs]
-optional = true
-
-[tool.poetry.group.docs.dependencies]
-mkdocs = "^1.6.1"
-mkdocs-material = "^9.6.5"
-mkdocstrings = "^0.28.2"
-
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+test = [
+    "faker>=37.4.0",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "pytest-testdox>=3.1.0",
+]
 
 
 # ==== Ruff ====
@@ -75,7 +69,7 @@ exclude = [
 
 [tool.ruff.lint]
 fixable = ["ALL"]  # Fix all fixable issues
-select = ["ALL"]
+select = ["ALL"]   # Select all rules available
 extend-select = ["I"]
 ignore = [
     "A005",
@@ -85,6 +79,7 @@ ignore = [
     "FIX002",
     "F811",
     "G004",
+    "PLC0415",
     "PLR0913",
     "PERF203",
     "PGH003",

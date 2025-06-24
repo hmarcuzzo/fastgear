@@ -1,0 +1,16 @@
+name: 'Setup Python and uv'
+description: 'Install uv and set the Python version'
+
+inputs:
+  python-version:
+    description: 'Python version'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install uv and set the Python version
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "0.7.14"
+        python-version: ${{ inputs.python-version }}

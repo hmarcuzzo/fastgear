@@ -25,7 +25,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv pip install -r pyproject.toml --group test
+        run: uv sync --all-extras --test
 
       - name: Run tests
         run: |

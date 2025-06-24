@@ -16,18 +16,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python and Poetry
-        uses: ./.github/actions/setup-python-poetry
+      - name: Set up Python and uv
+        uses: ./.github/actions/setup-python-uv
         with:
           python-version: "3.13"
 
       - name: Install dependencies
-        run: poetry install --no-root
+        run: uv pip install -r pyproject.toml
 
       - name: Build package
-        run: poetry build
+        run: uv build
 
       - name: Publish to PyPI
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        run: poetry publish --no-interaction --username __token__ --password $PYPI_TOKEN
+        run: uv publish --token $PYPI_TOKEN

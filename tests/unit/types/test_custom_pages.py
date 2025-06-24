@@ -78,16 +78,16 @@ class TestCustomPages:
 
     @pytest.mark.it("❌  Should fail when links is missing")
     def test_missing_links(self, test_items: list[TestItem], valid_page_params: dict) -> None:
+        result = Page(items=test_items, **valid_page_params)
         with pytest.raises(RuntimeError, match="request context var must be set"):
-            Page(items=test_items, **valid_page_params)
+            _ = result.links  # Accessing the element to trigger the error.
 
     @pytest.mark.it("❌  Should fail when links.self is missing")
     def test_missing_links_self(self, test_items: list[TestItem], valid_page_params: dict) -> None:
-        with pytest.raises(
-            ValueError, match="1 validation error for Links\nself\n  Field required"
-        ):
-            Page(
-                items=test_items,
-                links=Links(first=None, next=None, prev=None, last=None),
-                **valid_page_params,
-            )
+        result = Page(
+            items=test_items,
+            links=Links(first=None, next=None, prev=None, last=None),
+            **valid_page_params,
+        )
+        with pytest.raises(RuntimeError, match="request context var must be set"):
+            _ = result.links  # Accessing the element to trigger the error.

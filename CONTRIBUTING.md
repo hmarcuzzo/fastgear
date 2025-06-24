@@ -11,24 +11,24 @@ Start by forking and cloning the FastGear repository:
 git clone https://github.com/YOUR-GITHUB-USERNAME/fastgear.git
 ```
 
-### Using Poetry for Dependency Management
-FastGear uses Poetry for managing dependencies. If you don't have Poetry installed, follow the instructions on the [official Poetry website](https://python-poetry.org/docs/).
+### Using uv for Dependency Management
+FastGear uses `uv` for managing dependencies. If you don't have uv installed, follow the instructions on the [official uv website](https://docs.astral.sh/uv/).
 
-Once Poetry is installed, navigate to the cloned repository and install the dependencies:
+Once `uv` is installed, navigate to the cloned repository and sync all the dependencies:
 ```sh
 cd fastgear
-poetry install
+uv sync
 ```
 - **Notes**:
-  - You can include optional dependency groups using the `--with` flag:
+  - You can include optional dependency groups using the `--group` flag:
     - `dev`: development dependencies.
     - `test`: testing dependencies.
 
 ### Activating the Virtual Environment
-Poetry creates a virtual environment for your project. Activate it using:
+`uv` creates a virtual environment for your project. Activate it using:
 
 ```sh
-poetry env activate
+source .venv/bin/activate
 ```
 
 ## Making Contributions
@@ -40,7 +40,7 @@ poetry env activate
 ### Testing with Pytest
 FastGear uses pytest for testing. Run tests using:
 ```sh
-poetry run pytest
+uv run pytest
 ```
 
 ### Linting
@@ -53,7 +53,7 @@ ruff format
 - To ensure your commits comply with the expected standards, you can use the pre-commit tool. 
 Install it with:
     ```sh
-    poetry run pre-commit install
+    uv run pre-commit install
     ```
 
 Ensure your code passes linting and pre-commit checks before submitting.

@@ -65,6 +65,12 @@ Run the following command:
 poetry add fastgear
 ```
 
+## Using uv
+Run the following command:
+```sh
+uv add fastgear
+```
+
 ## License
 
 This project is licensed under the terms of the MIT license.

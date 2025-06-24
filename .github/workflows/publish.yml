@@ -22,7 +22,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install dependencies
-        run: uv pip install -r pyproject.toml
+        run: uv sync --all-extras
 
       - name: Build package
         run: uv build

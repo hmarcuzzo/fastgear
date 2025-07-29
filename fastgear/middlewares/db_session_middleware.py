@@ -23,7 +23,10 @@ class DBSessionMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         session_manager = self.session_factory.get_session()
-        is_async = inspect.iscoroutinefunction(session_manager.__aenter__)
+        # Check if session_manager has async context methods
+        is_async = hasattr(session_manager, "__aenter__") and inspect.iscoroutinefunction(
+            getattr(session_manager, "__aenter__", None)
+        )
 
         if is_async:
             async with session_manager as session:

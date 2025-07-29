@@ -7,13 +7,13 @@ class TestBase(DeclarativeBase):
     pass
 
 
-class TestEntity(TestBase):
+class EntityFixture(TestBase):
     __tablename__ = "test_entity"
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
 
 
-class TestModel(BaseModel):
+class ModelFixture(BaseModel):
     id: int
     name: str

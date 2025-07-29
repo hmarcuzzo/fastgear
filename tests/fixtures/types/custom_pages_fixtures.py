@@ -3,14 +3,14 @@ from fastapi_pagination.links.bases import Links
 from pydantic import BaseModel
 
 
-class TestItem(BaseModel):
+class ItemFixture(BaseModel):
     id: int
     name: str = "Test Item"
 
 
 @pytest.fixture
-def test_items() -> list[TestItem]:
-    return [TestItem(id=1, name="Test 1"), TestItem(id=2, name="Test 2")]
+def test_items() -> list[ItemFixture]:
+    return [ItemFixture(id=1, name="Test 1"), ItemFixture(id=2, name="Test 2")]
 
 
 @pytest.fixture

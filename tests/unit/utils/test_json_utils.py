@@ -5,7 +5,7 @@ from fastgear.common.schema import DetailResponseSchema
 from fastgear.utils.json_utils import JsonUtils
 
 
-class TestDetailResponse(DetailResponseSchema):
+class DetailResponseFixture(DetailResponseSchema):
     loc: list[str] = ["test"]
     msg: str = "Test message"
     type: str = "test_type"
@@ -31,7 +31,7 @@ class TestJsonUtils:
 
     @pytest.mark.it("✅  Should serialize DetailResponseSchema objects to dict")
     def test_json_serial_detail_response(self, faker: Faker):
-        test_response = TestDetailResponse(
+        test_response = DetailResponseFixture(
             loc=[faker.word()], msg=faker.sentence(), type=faker.word()
         )
         result = JsonUtils.json_serial(test_response)

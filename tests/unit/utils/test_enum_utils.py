@@ -5,7 +5,7 @@ import pytest
 from fastgear.utils.enum_utils import EnumUtils
 
 
-class TestEnum(Enum):
+class EnumFixture(Enum):
     TestValueOne = "test_value_one"
     TestValueTwo = "test_value_two"
     TestValueThree = "test_value_three"
@@ -36,7 +36,7 @@ class TestEnumUtils:
 
     @pytest.mark.it("✅  Should get correct object name for regular enum class")
     def test_get_object_name_regular_enum(self):
-        assert EnumUtils.get_object_name(TestEnum) == "test_enum"
+        assert EnumUtils.get_object_name(EnumFixture) == "enum_fixture"
 
     @pytest.mark.it("✅  Should get correct object name for empty enum class")
     def test_get_object_name_empty_enum(self):

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from fastgear.types.custom_pages import Page, custom_page_query, custom_size_query
 from tests.fixtures.types.custom_pages_fixtures import (  # noqa: F401
-    TestItem,
+    ItemFixture,
     test_items,
     valid_links,
     valid_page_params,
@@ -48,7 +48,7 @@ class TestCustomPages:
 
     @pytest.mark.it("✅  Should create a page with correct parameters")
     def test_page_creation(
-        self, test_items: list[TestItem], valid_links: Links, valid_page_params: dict
+        self, test_items: list[ItemFixture], valid_links: Links, valid_page_params: dict
     ) -> None:
         page = Page(items=test_items, links=valid_links, **valid_page_params)
 
@@ -58,7 +58,9 @@ class TestCustomPages:
         assert page.size == valid_page_params["size"]
 
     @pytest.mark.it("✅  Should validate page number")
-    def test_page_number_validation(self, test_items: list[TestItem], valid_links: Links) -> None:
+    def test_page_number_validation(
+        self, test_items: list[ItemFixture], valid_links: Links
+    ) -> None:
         with pytest.raises(ValueError, match="Input should be greater than or equal to 1"):
             Page(items=test_items, total=1, page=0, size=10, links=valid_links)
 
@@ -66,24 +68,26 @@ class TestCustomPages:
     def test_invalid_items_type(self, valid_links: Links, valid_page_params: dict) -> None:
         with pytest.raises(ValueError, match="Input should be an instance of Sequence"):
             Page(
-                items=TestItem(id=1),  # Should be a list
+                items=ItemFixture(id=1),  # Should be a list
                 links=valid_links,
                 **valid_page_params,
             )
 
     @pytest.mark.it("❌  Should fail when total is negative")
-    def test_negative_total(self, test_items: list[TestItem], valid_links: Links) -> None:
+    def test_negative_total(self, test_items: list[ItemFixture], valid_links: Links) -> None:
         with pytest.raises(ValueError, match="Input should be greater than or equal to 0"):
             Page(items=test_items, total=-1, page=1, size=10, links=valid_links)
 
     @pytest.mark.it("❌  Should fail when links is missing")
-    def test_missing_links(self, test_items: list[TestItem], valid_page_params: dict) -> None:
+    def test_missing_links(self, test_items: list[ItemFixture], valid_page_params: dict) -> None:
         result = Page(items=test_items, **valid_page_params)
         with pytest.raises(RuntimeError, match="request context var must be set"):
             _ = result.links  # Accessing the element to trigger the error.
 
     @pytest.mark.it("❌  Should fail when links.self is missing")
-    def test_missing_links_self(self, test_items: list[TestItem], valid_page_params: dict) -> None:
+    def test_missing_links_self(
+        self, test_items: list[ItemFixture], valid_page_params: dict
+    ) -> None:
         result = Page(
             items=test_items,
             links=Links(first=None, next=None, prev=None, last=None),

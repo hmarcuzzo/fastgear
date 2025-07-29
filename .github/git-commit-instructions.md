@@ -10,10 +10,10 @@ These conventions standardise commit messages across the project so that they ar
 <emoji> <short summary ≤ 80 chars>
 ```
 
-| Placeholder           | Description                                                                               |
-|:----------------------|:------------------------------------------------------------------------------------------|
-| `<emoji>`             | **Exactly one _gitmoji_** from the list below.                                            |
-| `<short summary>`     | Imperative sentence in the present tense, starting with uppercase, _max. 80 characters_.  |
+| Placeholder           | Description                                                                                                                                                                                                         |
+|:----------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `<emoji>`             | **Exactly one _gitmoji_** from the list below.                                                                                                                                                                      |
+| `<short summary>`     | Imperative sentence in the present tense, starting with uppercase.<br/>Avoid repeating the commit type already conveyed by the emoji (e.g., skip words like “Feature”, “Refactor”, etc.).<br/>_Max. 80 characters_. |
 
 > **Example**
 > ```text

@@ -28,25 +28,8 @@ class TestDBSessionMiddleware:
         mock_request: MagicMock,
         mock_call_next: AsyncMock,
     ) -> None:
-        app: FastAPI = FastAPI()
-        middleware: DBSessionMiddleware = DBSessionMiddleware(app, mock_sync_session_factory)
-
-        response: Response = asyncio.run(middleware.dispatch(mock_request, mock_call_next))
-
-        assert response.status_code == HTTP_200_OK
-        mock_sync_session_factory.get_session.assert_called_once()
-        mock_call_next.assert_called_once_with(mock_request)
-        assert db_session.get() is None
-
-    @pytest.mark.it("✅ Should handle sync session correctly (else block)")
-    def test_sync_session_else_block(
-        self,
-        mock_sync_session_factory: MagicMock,
-        mock_request: MagicMock,
-        mock_call_next: AsyncMock,
-    ) -> None:
-        app: FastAPI = FastAPI()
-        middleware: DBSessionMiddleware = DBSessionMiddleware(app, mock_sync_session_factory)
+        app = FastAPI()
+        middleware = DBSessionMiddleware(app, mock_sync_session_factory)
 
         # Mock the session manager to simulate a synchronous session
         mock_sync_session_factory.get_session.return_value = MagicMock()
@@ -73,8 +56,8 @@ class TestDBSessionMiddleware:
         mock_request: MagicMock,
         mock_call_next: AsyncMock,
     ) -> None:
-        app: FastAPI = FastAPI()
-        middleware: DBSessionMiddleware = DBSessionMiddleware(app, mock_async_session_factory)
+        app = FastAPI()
+        middleware = DBSessionMiddleware(app, mock_async_session_factory)
 
         response: Response = await middleware.dispatch(mock_request, mock_call_next)
 

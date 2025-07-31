@@ -2,7 +2,8 @@
 
 ## 1. General Development Rules
 1. Follow **PEP 8**
-2. **Type‑hint everything** (functions, methods, attrs).
+2. **Type‑hint everything** (functions, methods, attrs).<br>
+_unless the type is already explicit and unambiguous from the assignment itself_ (e.g., `app: FastAPI = FastAPI()` is redundant)
 3. **One logical concept per file**, one public class per module, < 400 LOC.
 4. **Functions ≤ 50 physical lines** and ≤ 6 cyclomatic complexity.
 5. **Never catch bare** `Exception`. Catch the narrowest concrete exception, re‑raise with context (raise from).

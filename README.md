@@ -14,9 +14,6 @@
 <a href="https://codecov.io/gh/hmarcuzzo/fastgear" > 
   <img src="https://codecov.io/gh/hmarcuzzo/fastgear/graph/badge.svg?token=TI97JTMZOR" alt="Codecov"/>
 </a>
-<a href="https://github.com/astral-sh/ruff">
-  <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json" alt="Ruff"/>
-</a>
 </p>
 <hr>
 <p align="justify">

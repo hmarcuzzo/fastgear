@@ -4,11 +4,10 @@ import pytest
 from fastapi import Body, FastAPI, Request
 from fastapi.openapi.utils import get_openapi
 from httpx import AsyncClient
-from pydantic import BaseModel
-from pydantic import ValidationError as V2ValidationError
-from pydantic.v1 import ValidationError as V1ValidationError
+from pydantic import BaseModel, ValidationError
 from starlette.exceptions import HTTPException
 from starlette.status import (
+    HTTP_200_OK,
     HTTP_404_NOT_FOUND,
     HTTP_422_UNPROCESSABLE_ENTITY,
     HTTP_500_INTERNAL_SERVER_ERROR,
@@ -19,7 +18,9 @@ from fastgear.handlers.http_exceptions_handler import HttpExceptionsHandler
 from fastgear.types.http_exceptions import NotFoundException
 from tests.fixtures.api import app
 
-ERROR_TYPES = tuple(t for t in (V2ValidationError, V1ValidationError) if t is not None)
+
+class DummyModel(BaseModel):
+    foo: int
 
 
 @pytest.mark.describe("🧪 HttpExceptionsHandler")
@@ -149,10 +150,75 @@ class TestHttpExceptionsHandler:
         assert len(as_dict["detail"]) == 1
         assert as_dict["detail"][0]["loc"] == ["body", "qty"]
 
-    # @pytest.mark.it("✅ Should customize error response schema in OpenAPI documentation correctly")
-    # def test_custom_error_response_schema(self):
-    #     # TODO: Implement test logic for customizing error response schema in OpenAPI documentation
-    #     pass
+    @pytest.mark.anyio
+    @pytest.mark.it("✅ Should customize error response schema in OpenAPI documentation correctly")
+    async def test_custom_error_response_schema(self, async_client: AsyncClient):
+        @app.post("/dummy")
+        async def dummy_endpoint(payload: DummyModel):
+            return {"ok": True}
+
+        # Arrange: install handler with OpenAPI customization enabled
+        HttpExceptionsHandler(app, add_custom_error_response=True)
+
+        resp = await async_client.get("/openapi.json")
+
+        assert resp.status_code == HTTP_200_OK
+        spec = resp.json()
+
+        # Basic structure checks
+        assert "components" in spec
+        assert isinstance(spec["components"], dict)
+
+        schemas = spec["components"].get("schemas", {})
+        assert isinstance(schemas, dict)
+
+        # The custom error envelope should be present
+        assert "ExceptionResponseSchema" in schemas, (
+            "ExceptionResponseSchema not found in OpenAPI schemas"
+        )
+        exc_schema = schemas["ExceptionResponseSchema"]
+
+        # Shape of ExceptionResponseSchema
+        assert exc_schema.get("type") == "object"
+        props = exc_schema.get("properties", {})
+        required = set(exc_schema.get("required", []))
+
+        # Required top-level fields
+        for key in ("status_code", "timestamp", "path", "method", "detail"):
+            assert key in props, f"Missing property '{key}' in ExceptionResponseSchema"
+
+        assert "status_code" not in required
+        assert "detail" in required
+        assert "path" in required
+        assert "method" in required
+        assert "timestamp" in required
+
+        # Property types (be tolerant about formats)
+        assert props["status_code"].get("type") == "integer"
+        assert props["timestamp"].get("type") == "string"
+        assert props["path"].get("type") == "string"
+        assert props["method"].get("type") == "string"
+
+        # detail should be an array; items usually $ref DetailResponseSchema
+        assert props["detail"].get("type") == "array"
+        items = props["detail"].get("items", {})
+        # Accept either a $ref or an inline object
+        assert "$ref" in items or items.get("type") == "object"
+
+        # If DetailResponseSchema exists, validate its basic shape too
+        if "$ref" in items:
+            ref_name = items["$ref"].split("/")[-1]
+            assert ref_name in schemas, f"Referenced schema '{ref_name}' not found"
+            detail_schema = schemas[ref_name]
+            assert detail_schema.get("type") == "object"
+            dprops = detail_schema.get("properties", {})
+            drequired = set(detail_schema.get("required", []))
+            for key in ("loc", "msg", "type"):
+                assert key in dprops, f"Missing property '{key}' in {ref_name}"
+                assert key in drequired, f"'{key}' should be required in {ref_name}"
+            assert dprops["loc"].get("type") == "array"
+            assert dprops["msg"].get("type") == "string"
+            assert dprops["type"].get("type") == "string"
 
     @pytest.mark.anyio
     @pytest.mark.it("❌ Should fail to handle unsupported HTTP exceptions")
@@ -177,7 +243,7 @@ class TestHttpExceptionsHandler:
     def test_invalid_error_message_generation(self, bad_detail: object):
         request = self._create_request("/invalid")
 
-        with pytest.raises(ERROR_TYPES) as exc:
+        with pytest.raises(ValidationError) as exc:
             HttpExceptionsHandler.global_exception_error_message(
                 status_code=422, detail=bad_detail, request=request
             )

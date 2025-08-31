@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic.v1 import BaseModel, Extra, Field
+from pydantic import BaseModel, Extra, Field
 
 
 class DetailResponseSchema(BaseModel):

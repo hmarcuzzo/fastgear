@@ -22,5 +22,5 @@ class JsonUtils:
         if isinstance(obj, datetime | date):
             return obj.isoformat()
         if isinstance(obj, DetailResponseSchema):
-            return obj.dict()
+            return obj.model_dump()
         raise TypeError(f"Type {type(obj)} not serializable")

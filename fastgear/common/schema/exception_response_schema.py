@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DetailResponseSchema(BaseModel):
@@ -16,5 +16,4 @@ class ExceptionResponseSchema(BaseModel):
     path: str = Field(title="Request Path")
     method: str = Field(title="Request Method")
 
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")

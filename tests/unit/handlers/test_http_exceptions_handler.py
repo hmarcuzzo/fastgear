@@ -142,7 +142,7 @@ class TestHttpExceptionsHandler:
         assert d0.type in {"type_error.integer", "type_error"}
 
         # Assert dict conversion
-        as_dict = result.dict()
+        as_dict = result.model_dump()
         assert as_dict["status_code"] == HTTP_422_UNPROCESSABLE_ENTITY
         assert as_dict["path"] == "/test"
         assert as_dict["method"] == "GET"

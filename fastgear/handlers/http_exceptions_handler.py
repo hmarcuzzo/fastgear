@@ -52,7 +52,7 @@ class HttpExceptionsHandler:
                             loc=[], msg=exc.detail, type="Starlette HTTP Exception"
                         ),
                         request=request,
-                    ).dict(),
+                    ).model_dump(),
                     default=JsonUtils.json_serial,
                 ),
             )
@@ -78,7 +78,7 @@ class HttpExceptionsHandler:
                         status_code=HTTP_422_UNPROCESSABLE_ENTITY,
                         detail=[DetailResponseSchema(**detail) for detail in exc.errors()],
                         request=request,
-                    ).dict(),
+                    ).model_dump(),
                     default=JsonUtils.json_serial,
                 ),
             )
@@ -116,7 +116,7 @@ class HttpExceptionsHandler:
                         status_code=exc.status_code,
                         detail=DetailResponseSchema(**detail_dict),
                         request=request,
-                    ).dict(),
+                    ).model_dump(),
                     default=JsonUtils.json_serial,
                 ),
             )

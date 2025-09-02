@@ -139,9 +139,12 @@ class PaginationUtils:
 
     @staticmethod
     def format_skip_take_options(paging_options: Pagination) -> FindManyOptions:
-        return FindManyOptions(
-            skip=(paging_options["skip"] - 1) * paging_options["take"], take=paging_options["take"]
-        )
+        def extract_value(val: object) -> object:
+            return getattr(val, "default", val)
+
+        skip = int(extract_value(paging_options["skip"]))
+        take = int(extract_value(paging_options["take"]))
+        return FindManyOptions(skip=(skip - 1) * take, take=take)
 
     @staticmethod
     def _remove_duplicate_params(params: list[str]) -> list[str]:

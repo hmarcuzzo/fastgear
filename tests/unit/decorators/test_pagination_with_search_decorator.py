@@ -6,6 +6,7 @@ import fastgear.decorators.pagination_with_search_decorator as mod
 from fastgear.decorators.pagination_with_search_decorator import PaginationWithSearchOptions
 
 
+@pytest.mark.describe("🧪  PaginationWithSearchOptions")
 class TestPaginationWithSearchOptions:
     @pytest.mark.it("✅  Should pass arguments to PaginationUtils and return paging data")
     def test_call_passes_arguments_to_pagination_utils(

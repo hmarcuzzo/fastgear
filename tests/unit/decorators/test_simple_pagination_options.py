@@ -8,6 +8,7 @@ from fastgear.types.custom_pages import custom_page_query, custom_size_query
 from fastgear.types.find_many_options import FindManyOptions
 
 
+@pytest.mark.describe("🧪  SimplePaginationOptions")
 class TestSimplePaginationOptions:
     def setup_method(self):
         self.paginator = SimplePaginationOptions()

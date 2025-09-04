@@ -6,7 +6,7 @@ from fastgear.common.database.sqlalchemy.session import db_session
 from fastgear.decorators.db_session_decorator import DBSessionDecorator
 
 
-@pytest.mark.describe("🧪 DBSessionDecorator")
+@pytest.mark.describe("🧪  DBSessionDecorator")
 class TestDbSessionDecorator:
     @pytest.mark.it("✅ Should handle async function correctly")
     @pytest.mark.asyncio

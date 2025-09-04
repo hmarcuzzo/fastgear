@@ -41,7 +41,7 @@ class BaseSchema(CustomBaseModel):
         if isinstance(obj, dict):
             obj_dict = obj
         else:
-            for field_name in cls.__fields__:
+            for field_name in cls.model_fields:
                 try:
                     # Attempt to get the attribute, if it raises an InvalidRequestError, it is not loaded
                     value = getattr(obj, field_name)

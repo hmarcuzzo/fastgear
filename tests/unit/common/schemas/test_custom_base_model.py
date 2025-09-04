@@ -11,6 +11,7 @@ class TestModel(CustomBaseModel):
     timestamp: datetime
 
 
+@pytest.mark.describe("🧪 CustomBaseModel")
 class TestCustomBaseModel:
     @pytest.mark.it("✅  Should serialize datetimes to ISO 8601 using model_dump_json")
     def test_datetime_serialization_to_isoformat_using_model_dump_json(self, faker: Faker) -> None:

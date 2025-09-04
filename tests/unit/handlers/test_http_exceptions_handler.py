@@ -220,6 +220,21 @@ class TestHttpExceptionsHandler:
             assert dprops["msg"].get("type") == "string"
             assert dprops["type"].get("type") == "string"
 
+    @pytest.mark.it("✅ Should not call app.openapi() when app.openapi_schema is already set")
+    def test_custom_error_response_uses_existing_schema_when_present(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        # Arrange: provide an existing schema and ensure app.openapi() would fail if called
+        existing = {"components": {"schemas": {"ExistingSchema": {"type": "object"}}}}
+        app.openapi_schema = existing
+
+        # Act
+        result = HttpExceptionsHandler.custom_error_response(app)
+
+        # Assert: returned object is the same cached schema and unchanged
+        assert result is existing
+        assert app.openapi_schema is existing
+
     @pytest.mark.anyio
     @pytest.mark.it("❌ Should fail to handle unsupported HTTP exceptions")
     async def test_unsupported_http_exception_handling(self, async_client: AsyncClient):

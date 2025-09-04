@@ -13,10 +13,6 @@ class DetailResponseFixture(DetailResponseSchema):
 
 @pytest.mark.describe("🧪  JsonUtils")
 class TestJsonUtils:
-    @pytest.fixture
-    def faker(self) -> Faker:
-        return Faker()
-
     @pytest.mark.it("✅  Should serialize datetime objects to ISO format")
     def test_json_serial_datetime(self, faker: Faker):
         test_datetime = faker.date_time()

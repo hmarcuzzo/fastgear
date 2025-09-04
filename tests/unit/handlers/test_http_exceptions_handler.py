@@ -23,7 +23,7 @@ class DummyModel(BaseModel):
     foo: int
 
 
-@pytest.mark.describe("🧪 HttpExceptionsHandler")
+@pytest.mark.describe("🧪  HttpExceptionsHandler")
 class TestHttpExceptionsHandler:
     @staticmethod
     def setup_method():

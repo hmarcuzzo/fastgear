@@ -5,6 +5,7 @@ import pytest
 from fastgear.constants.regex_expressions import ANY_CHAR, OPERATOR, ORDER_BY_QUERY
 
 
+@pytest.mark.describe("🧪  Regex Expressions")
 class TestRegexExpressions:
     @pytest.mark.it("✅ Should validate ORDER_BY_QUERY regex correctly")
     @pytest.mark.parametrize("query", ["ASC", "DESC"])

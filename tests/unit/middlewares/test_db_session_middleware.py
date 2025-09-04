@@ -3,11 +3,11 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from fastapi import FastAPI
 from starlette.status import HTTP_200_OK
 
 from fastgear.common.database.sqlalchemy.session import db_session
 from fastgear.middlewares import DBSessionMiddleware
+from tests.fixtures.api import app
 from tests.fixtures.middlewares.db_session_middleware_fixtures import (  # noqa: F401
     mock_async_session_factory,
     mock_call_next,
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from starlette.responses import Response
 
 
-@pytest.mark.describe("🧪 DBSessionMiddleware")
+@pytest.mark.describe("🧪  DBSessionMiddleware")
 class TestDBSessionMiddleware:
     @pytest.mark.it("✅ Should handle sync session correctly")
     def test_sync_session_handling(
@@ -28,7 +28,6 @@ class TestDBSessionMiddleware:
         mock_request: MagicMock,
         mock_call_next: AsyncMock,
     ) -> None:
-        app = FastAPI()
         middleware = DBSessionMiddleware(app, mock_sync_session_factory)
 
         # Mock the session manager to simulate a synchronous session
@@ -56,7 +55,6 @@ class TestDBSessionMiddleware:
         mock_request: MagicMock,
         mock_call_next: AsyncMock,
     ) -> None:
-        app = FastAPI()
         middleware = DBSessionMiddleware(app, mock_async_session_factory)
 
         response: Response = await middleware.dispatch(mock_request, mock_call_next)

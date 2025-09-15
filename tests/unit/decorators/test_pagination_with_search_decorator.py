@@ -13,7 +13,7 @@ class TestPaginationWithSearchOptions:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         mock_utils = Mock()
-        mock_utils.generate_paging_parameters.return_value = {"skip": 5, "take": 10}
+        mock_utils.build_pagination_options.return_value = {"skip": 5, "take": 10}
         mock_utils.get_paging_data.return_value = {"data": "ok"}
 
         monkeypatch.setattr(mod, "PaginationUtils", lambda: mock_utils)
@@ -33,12 +33,12 @@ class TestPaginationWithSearchOptions:
         mock_utils.validate_block_attributes.assert_called_once_with(
             opts.block_attributes, ["field:value"], ["f:by"], None, None
         )
-        mock_utils.generate_paging_parameters.assert_called_once_with(
+        mock_utils.build_pagination_options.assert_called_once_with(
             2, 10, ["field:value"], ["f:by"], "find_q", "order_q"
         )
         mock_utils.get_paging_data.assert_called_once_with(
             "EntityX",
-            mock_utils.generate_paging_parameters.return_value,
+            mock_utils.build_pagination_options.return_value,
             [],
             None,
             "cols_query",
@@ -49,7 +49,7 @@ class TestPaginationWithSearchOptions:
     @pytest.mark.it("✅  Should forward provided columns to get_paging_data")
     def test_columns_provided_are_forwarded(self, monkeypatch: pytest.MonkeyPatch) -> None:
         mock_utils = Mock()
-        mock_utils.generate_paging_parameters.return_value = {"skip": 0, "take": 5}
+        mock_utils.build_pagination_options.return_value = {"skip": 0, "take": 5}
         mock_utils.get_paging_data.return_value = {"items": []}
 
         monkeypatch.setattr(mod, "PaginationUtils", lambda: mock_utils)
@@ -66,7 +66,7 @@ class TestPaginationWithSearchOptions:
         _ = opts.__call__(page=1, size=5, search=None, sort=None, columns=cols, search_all="x")
 
         mock_utils.get_paging_data.assert_called_once_with(
-            "E", mock_utils.generate_paging_parameters.return_value, cols, "x", "cols", None
+            "E", mock_utils.build_pagination_options.return_value, cols, "x", "cols", None
         )
 
     @pytest.mark.it(
@@ -74,7 +74,7 @@ class TestPaginationWithSearchOptions:
     )
     def test_columns_none_converted_to_empty_list(self, monkeypatch: pytest.MonkeyPatch) -> None:
         mock_utils = Mock()
-        mock_utils.generate_paging_parameters.return_value = {"skip": 1, "take": 2}
+        mock_utils.build_pagination_options.return_value = {"skip": 1, "take": 2}
         mock_utils.get_paging_data.return_value = {"ok": True}
 
         monkeypatch.setattr(mod, "PaginationUtils", lambda: mock_utils)
@@ -90,6 +90,6 @@ class TestPaginationWithSearchOptions:
         res = opts.__call__(page=1, size=2, search=None, sort=None, columns=None, search_all=None)
 
         mock_utils.get_paging_data.assert_called_once_with(
-            "Ent", mock_utils.generate_paging_parameters.return_value, [], None, "c", None
+            "Ent", mock_utils.build_pagination_options.return_value, [], None, "c", None
         )
         assert res == mock_utils.get_paging_data.return_value

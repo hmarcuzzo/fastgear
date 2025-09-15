@@ -87,7 +87,7 @@ class PaginationWithSearchOptions(SimplePaginationOptions):
             self.block_attributes, search, sort, columns, search_all
         )
 
-        paging_params = self.pagination_utils.generate_paging_parameters(
+        paging_params = self.pagination_utils.build_pagination_options(
             page, size, search, sort, self.find_all_query, self.order_by_query
         )
 

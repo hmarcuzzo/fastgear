@@ -18,7 +18,7 @@ OB = TypeVar("OB")
 
 
 class PaginationUtils:
-    def generate_paging_parameters(
+    def build_pagination_options(
         self,
         page: int,
         size: int,
@@ -27,6 +27,33 @@ class PaginationUtils:
         find_all_query: F = None,
         order_by_query: OB = None,
     ) -> Pagination:
+        """Build pagination options from query parameters
+
+        Deduplicates and parses sort/search parameters, producing a Pagination
+        mapping with skip, take, and normalized sort/search entries. When
+        query schemas are provided, validates sort fields/directions and search
+        fields/values against the corresponding Pydantic models.
+
+        Args:
+            page (int): 1-based page number used to populate the `skip` field.
+            size (int): Page size used to populate the `take` field.
+            search (list[str] | None): List of filters in the form
+                "field:value". Duplicates are removed.
+            sort (list[str] | None): List of sort directives in the form
+                "field:ASC|DESC". Duplicates are removed.
+            find_all_query (F, optional): Pydantic model type used to validate
+                search fields and values.
+            order_by_query (OB, optional): Pydantic model type used to validate
+                sortable fields and directions.
+
+        Returns:
+            Pagination: A pagination options mapping with keys `skip`, `take`,
+            and optional `sort`/`search` lists ready for downstream processing.
+
+        Raises:
+            BadRequestException: If sort or search filters are invalid given the
+            provided query schemas.
+        """
         paging_options = Pagination(skip=page, take=size, sort=[], search=[])
 
         if sort:

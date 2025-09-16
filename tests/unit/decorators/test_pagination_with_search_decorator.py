@@ -15,6 +15,7 @@ class TestPaginationWithSearchOptions:
         mock_utils = Mock()
         mock_utils.build_pagination_options.return_value = {"skip": 5, "take": 10}
         mock_utils.get_paging_data.return_value = {"data": "ok"}
+        mock_utils.assert_no_blocked_attributes = Mock()
 
         monkeypatch.setattr(mod, "PaginationUtils", lambda: mock_utils)
 
@@ -30,7 +31,7 @@ class TestPaginationWithSearchOptions:
             page=2, size=10, search=["field:value"], sort=["f:by"], columns=None, search_all=None
         )
 
-        mock_utils.validate_block_attributes.assert_called_once_with(
+        mock_utils.assert_no_blocked_attributes.assert_called_once_with(
             opts.block_attributes, ["field:value"], ["f:by"], None, None
         )
         mock_utils.build_pagination_options.assert_called_once_with(
@@ -51,6 +52,7 @@ class TestPaginationWithSearchOptions:
         mock_utils = Mock()
         mock_utils.build_pagination_options.return_value = {"skip": 0, "take": 5}
         mock_utils.get_paging_data.return_value = {"items": []}
+        mock_utils.assert_no_blocked_attributes = Mock()
 
         monkeypatch.setattr(mod, "PaginationUtils", lambda: mock_utils)
 
@@ -76,6 +78,7 @@ class TestPaginationWithSearchOptions:
         mock_utils = Mock()
         mock_utils.build_pagination_options.return_value = {"skip": 1, "take": 2}
         mock_utils.get_paging_data.return_value = {"ok": True}
+        mock_utils.assert_no_blocked_attributes = Mock()
 
         monkeypatch.setattr(mod, "PaginationUtils", lambda: mock_utils)
 

@@ -83,7 +83,7 @@ class PaginationWithSearchOptions(SimplePaginationOptions):
             FindManyOptions: An object containing the pagination and search options.
 
         """
-        self.pagination_utils.validate_block_attributes(
+        self.pagination_utils.assert_no_blocked_attributes(
             self.block_attributes, search, sort, columns, search_all
         )
 

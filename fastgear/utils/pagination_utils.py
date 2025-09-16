@@ -57,12 +57,12 @@ class PaginationUtils:
         paging_options = Pagination(skip=page, take=size, sort=[], search=[])
 
         if sort:
-            sort = self._remove_duplicate_params(sort)
+            sort = list(set(sort))
             paging_options["sort"] = self._create_pagination_sort(sort)
             self._check_and_raise_for_invalid_sort_filters(paging_options["sort"], order_by_query)
 
         if search:
-            search = self._remove_duplicate_params(search)
+            search = list(set(search))
             paging_options["search"] = self._create_pagination_search(search)
             self._check_and_raise_for_invalid_search_filters(
                 paging_options["search"], find_all_query
@@ -174,10 +174,6 @@ class PaginationUtils:
         return FindManyOptions(skip=(skip - 1) * take, take=take)
 
     @staticmethod
-    def _remove_duplicate_params(params: list[str]) -> list[str]:
-        return list(set(params))
-
-    @staticmethod
     def _create_pagination_sort(sort_params: list[str]) -> list[PaginationSort]:
         pagination_sorts = []
         for sort_param in sort_params:
@@ -241,7 +237,8 @@ class PaginationUtils:
         for search_param in search_params:
             if (
                 search_param["field"] not in query_dto_fields
-                or PaginationUtils.can_convert(find_all_query, search_param) is False
+                or PaginationUtils.assert_search_param_convertible(find_all_query, search_param)
+                is False
             ):
                 return False
 
@@ -313,40 +310,63 @@ class PaginationUtils:
         )
 
     @staticmethod
-    def validate_block_attributes(
+    def assert_no_blocked_attributes(
         block_attributes: list[str],
         search: list | None,
         sort: list | None,
         columns: list | None,
         search_all: str | None,
     ) -> None:
-        attributes = {"search": search, "sort": sort, "columns": columns, "search_all": search_all}
+        """Assert that blocked pagination attributes are not present
 
-        for attribute in block_attributes:
-            if attribute in attributes and attributes[attribute] is not None:
-                logger.info(f"Invalid block attribute: {attribute}")
-                raise BadRequestException(
-                    f"The attribute '{attribute}' is blocked in this route and cannot be used.",
-                    loc=[attribute],
-                )
-
-    @staticmethod
-    def can_convert(find_all_query: F, search_param: PaginationSearch) -> bool:
-        """Validates if the search parameter can be converted to the type defined
-        in the find_all_query.
+        Checks whether any of the provided pagination attributes are present and,
+        if so, logs the blocked attributes and raises BadRequestException.
 
         Args:
-            find_all_query (F): The query object that defines the expected types.
-            search_param (PaginationSearch): The search parameter containing the field and value
-            to be validated.
+            block_attributes (list[str]): Attributes that are blocked for the route.
+            search (list | None): Search filters provided by the request.
+            sort (list | None): Sort directives provided by the request.
+            columns (list | None): Selected columns provided by the request.
+            search_all (str | None): Global search string provided by the request.
 
         Returns:
-            bool: True if the search parameter can be converted to the expected type,
-            False otherwise.
+            None: This function only raises on violation.
 
         Raises:
-            BadRequestException: If the search value is invalid or cannot be converted.
+            BadRequestException: If any blocked attribute is present in the request.
+        """
+        attributes_map = {
+            "search": search,
+            "sort": sort,
+            "columns": columns,
+            "search_all": search_all,
+        }
+        blocked = [attr for attr in block_attributes if attributes_map.get(attr) is not None]
+        if not blocked:
+            return
 
+        logger.info(f"Invalid block attribute(s): {blocked}")
+        raise BadRequestException(
+            f"The attribute(s) {blocked} are blocked in this route and cannot be used.", loc=blocked
+        )
+
+    @staticmethod
+    def assert_search_param_convertible(find_all_query: F, search_param: PaginationSearch) -> bool:
+        """Validate that a search parameter value is convertible to the query type
+
+        Attempt to validate the single-field mapping {field: value} against the provided
+        Pydantic find_all_query using TypeAdapter.validate_python. On success returns
+        True; on conversion failure raises BadRequestException.
+
+        Args:
+            find_all_query (F): Pydantic model class describing expected field types.
+            search_param (PaginationSearch): Mapping with field (str) and value (str) to validate.
+
+        Returns:
+            bool: True if the value can be converted to the expected type.
+
+        Raises:
+            BadRequestException: If the value is invalid or cannot be converted.
         """
         try:
             TypeAdapter(find_all_query).validate_python(
@@ -384,14 +404,25 @@ class PaginationUtils:
                     aggregated[field] = [aggregated[field], value]
             else:
                 aggregated[field] = (
-                    [value] if PaginationUtils._is_list_type(query_attr_types[field]) else value
+                    [value]
+                    if PaginationUtils._is_list_type_hint(query_attr_types[field])
+                    else value
                 )
 
         return [{"field": key, "value": aggregated[key]} for key in aggregated]
 
     @staticmethod
-    def _is_list_type(field_type: Any) -> bool:
-        return (
-            getattr(field_type, "__origin__", None) is list
-            or getattr(field_type, "__origin__", None) is list
-        )
+    def _is_list_type_hint(field_type: Any) -> bool:
+        """Return whether the given type hint represents a list.
+
+        Args:
+            field_type (Any): A type hint to inspect (for example from typing.get_type_hints).
+
+        Returns:
+            bool: True if the origin of the type hint is `list`, otherwise False.
+
+        Examples:
+            >>> PaginationUtils._is_list_type_hint(list[int])
+            True
+        """
+        return typing.get_origin(field_type) is list

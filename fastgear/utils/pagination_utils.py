@@ -1,7 +1,7 @@
 import typing
+import warnings
 from math import ceil
 from typing import Any, TypeVar
-from warnings import deprecated
 
 from loguru import logger
 from pydantic import BaseModel, TypeAdapter
@@ -308,7 +308,6 @@ class PaginationUtils:
         return paging_options, selected_columns
 
     @staticmethod
-    @deprecated("Use PaginationUtils.to_page_response instead")
     def generate_page(
         items: list[EntityType | BaseModel], total: int, offset: int, size: int
     ) -> Page[EntityType | BaseModel]:
@@ -318,6 +317,11 @@ class PaginationUtils:
             This function is deprecated and will be removed in a future release.
             Use PaginationUtils.to_page_response(items, total, offset, size).
         """
+        warnings.warn(
+            "generate_page() está depreciado. Use PaginationUtils.to_page_response().",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return PaginationUtils.to_page_response(items, total, offset, size)
 
     @staticmethod

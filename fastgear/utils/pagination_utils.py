@@ -1,6 +1,7 @@
 import typing
 from math import ceil
 from typing import Any, TypeVar
+from warnings import deprecated
 
 from loguru import logger
 from pydantic import BaseModel, TypeAdapter
@@ -132,7 +133,9 @@ class PaginationUtils:
         if not search_all:
             return
 
-        where_columns = find_all_query.__fields__ if find_all_query else get_columns(entity).keys()
+        where_columns = (
+            find_all_query.model_fields if find_all_query else get_columns(entity).keys()
+        )
 
         where_clauses = [
             cast(getattr(entity, column), String).ilike(f"%{search_all}%")
@@ -146,6 +149,7 @@ class PaginationUtils:
             else where_clauses
         )
 
+    # TODO: unit test this method
     @staticmethod
     def select_columns(
         selected_columns: list[str],
@@ -154,16 +158,15 @@ class PaginationUtils:
         paging_options: FindManyOptions,
     ) -> None:
         if PaginationUtils.validate_columns(list(set(selected_columns)), columns_query):
-            (paging_options, selected_columns) = (
-                PaginationUtils.generating_selected_relationships_and_columns(
-                    paging_options, list(set(selected_columns)), columns_query, entity
-                )
+            (_, _) = PaginationUtils.generating_selected_relationships_and_columns(
+                paging_options, list(set(selected_columns)), columns_query, entity
             )
         else:
             message = f"Invalid columns: {selected_columns}"
             logger.info(message)
             raise BadRequestException(message)
 
+    # TODO: unit test this method
     @staticmethod
     def format_skip_take_options(paging_options: Pagination) -> FindManyOptions:
         def extract_value(val: object) -> object:
@@ -173,6 +176,7 @@ class PaginationUtils:
         take = int(extract_value(paging_options["take"]))
         return FindManyOptions(skip=(skip - 1) * take, take=take)
 
+    # TODO: unit test this method
     @staticmethod
     def _create_pagination_sort(sort_params: list[str]) -> list[PaginationSort]:
         pagination_sorts = []
@@ -183,6 +187,7 @@ class PaginationUtils:
             )
         return pagination_sorts
 
+    # TODO: unit test this method
     @staticmethod
     def _create_pagination_search(search_params: list[str]) -> list[PaginationSearch]:
         pagination_search = []
@@ -193,6 +198,7 @@ class PaginationUtils:
             )
         return pagination_search
 
+    # TODO: unit test this method
     @staticmethod
     def _check_and_raise_for_invalid_sort_filters(
         pagination_sorts: list[PaginationSort], order_by_query: OB = None
@@ -204,6 +210,7 @@ class PaginationUtils:
             logger.info(message)
             raise BadRequestException(message)
 
+    # TODO: unit test this method
     @staticmethod
     def _check_and_raise_for_invalid_search_filters(
         pagination_search: list[PaginationSearch], find_all_query: F = None
@@ -213,18 +220,20 @@ class PaginationUtils:
         ):
             raise BadRequestException("Invalid search filters")
 
+    # TODO: unit test this method
     @staticmethod
     def _is_valid_sort_params(sort: list[PaginationSort], order_by_query_schema: OB) -> bool:
-        query_schema_fields = order_by_query_schema.__fields__
+        query_schema_fields = order_by_query_schema.model_fields
 
         is_valid_field = all(sort_param["field"] in query_schema_fields for sort_param in sort)
         is_valid_direction = all(sort_param["by"] in ["ASC", "DESC"] for sort_param in sort)
 
         return is_valid_field and is_valid_direction
 
+    # TODO: unit test this method
     @staticmethod
     def _is_valid_search_params(search: list[PaginationSearch], find_all_query: F) -> bool:
-        query_dto_fields = find_all_query.__fields__
+        query_dto_fields = find_all_query.model_fields
 
         if not PaginationUtils.validate_required_search_filter(search, query_dto_fields):
             return False
@@ -244,6 +253,7 @@ class PaginationUtils:
 
         return True
 
+    # TODO: unit test this method
     @staticmethod
     def validate_required_search_filter(
         search: list[PaginationSearch], query_dto_fields: F
@@ -255,12 +265,14 @@ class PaginationUtils:
 
         return True
 
+    # TODO: unit test this method
     @staticmethod
     def validate_columns(columns: list[str], columns_query_dto: ColumnsQueryType) -> bool:
-        query_dto_fields = columns_query_dto.__fields__
+        query_dto_fields = columns_query_dto.model_fields
 
         return all(column in query_dto_fields for column in columns)
 
+    # TODO: unit test this method
     @staticmethod
     def generating_selected_relationships_and_columns(
         paging_options: FindManyOptions,
@@ -268,7 +280,7 @@ class PaginationUtils:
         columns_query_dto: ColumnsQueryType,
         entity: EntityType,
     ) -> (FindManyOptions, list[str]):
-        query_dto_fields = columns_query_dto.__fields__
+        query_dto_fields = columns_query_dto.model_fields
         entity_relationships = inspect(entity).relationships
 
         for field in query_dto_fields:
@@ -296,17 +308,45 @@ class PaginationUtils:
         return paging_options, selected_columns
 
     @staticmethod
+    @deprecated("Use PaginationUtils.to_page_response instead")
     def generate_page(
-        items: list[EntityType | BaseModel], total: int, skip: int, page_size: int
+        items: list[EntityType | BaseModel], total: int, offset: int, size: int
     ) -> Page[EntityType | BaseModel]:
-        current_page = skip // page_size + 1
+        """Deprecated: use `to_page_response` instead.
+
+        Deprecated:
+            This function is deprecated and will be removed in a future release.
+            Use PaginationUtils.to_page_response(items, total, offset, size).
+        """
+        return PaginationUtils.to_page_response(items, total, offset, size)
+
+    @staticmethod
+    def to_page_response(
+        items: list[EntityType | BaseModel], total: int, offset: int, size: int
+    ) -> Page[EntityType | BaseModel]:
+        """
+        Construct a Page value object containing the items for the current page
+        together with pagination metadata derived from the supplied parameters.
+
+        Args:
+            items (list[EntityType | BaseModel]): Items belonging to the current page.
+            total (int): Total number of items available across all pages.
+            offset (int): Number of items skipped (offset). This method treats `skip`
+                as an offset (0-based count of items to skip).
+            size (int): Number of items per page.
+
+        Returns:
+            Page[EntityType | BaseModel]: A Page object containing the items and
+            pagination metadata.
+
+        Notes:
+            - This function does not perform validation of arguments (e.g. negative
+              values or zero page_size). Callers should validate inputs before use.
+        """
+        current_page = offset // size + 1
 
         return Page(
-            items=items,
-            page=current_page,
-            size=page_size,
-            total=total,
-            pages=ceil(total / page_size),
+            items=items, page=current_page, size=size, total=total, pages=ceil(total / size)
         )
 
     @staticmethod

@@ -1,9 +1,13 @@
+# ruff: noqa: PLR2004
+
 from unittest.mock import Mock
 
 import pytest
+from sqlalchemy import BinaryExpression
 
 import fastgear.decorators.pagination_with_search_decorator as mod
 from fastgear.decorators.pagination_with_search_decorator import PaginationWithSearchOptions
+from tests.fixtures.utils.pagination_utils_fixtures import DummyOrderByQuery, DummyQuery, User
 
 
 @pytest.mark.describe("🧪  PaginationWithSearchOptions")
@@ -96,3 +100,25 @@ class TestPaginationWithSearchOptions:
             "Ent", mock_utils.build_pagination_options.return_value, [], None, "c", None
         )
         assert res == mock_utils.get_paging_data.return_value
+
+    @pytest.mark.it("✅  Should initialize correctly with User, DummyQuery and DummyOrderByQuery")
+    def test_init_with_user_dummyquery_dummyorderbyquery(self):
+        options = PaginationWithSearchOptions(
+            entity=User,
+            columns_query=DummyQuery,
+            find_all_query=DummyQuery,
+            order_by_query=DummyOrderByQuery,
+        )
+
+        assert options.entity is User
+        assert options.columns_query is DummyQuery
+        assert options.find_all_query is DummyQuery
+        assert options.order_by_query is DummyOrderByQuery
+
+        result = options.__call__(
+            page=1, size=5, search=["name:john", "personal_data__address:street"]
+        )
+
+        assert {"field": "personal_data__address", "value": "street"} in result["where"]
+        assert BinaryExpression in [type(cond) for cond in result["where"]]
+        assert len(result["where"]) == 2

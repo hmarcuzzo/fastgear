@@ -1,21 +1,46 @@
-import pytest
-from pydantic import BaseModel, Field
-from sqlalchemy import Column, Integer, String
+from typing import Annotated
 
-from fastgear.common.database.sqlalchemy.base import Base
+import pytest
+from pydantic import BaseModel, StringConstraints
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.orm import declarative_base, relationship
+
+from fastgear.constants import regex
 from fastgear.utils import PaginationUtils
 
-
-class DummyQuery(BaseModel):
-    name: str | None = Field(default=None)
-    age: int | None = Field(default=None)
+TestBase = declarative_base()
 
 
-class User(Base):
+class User(TestBase):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     name = Column(String)
     age = Column(Integer)
+
+    personal_data = relationship(
+        "PersonalData", back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class PersonalData(TestBase):
+    __tablename__ = "personal_data"
+    id = Column(Integer, primary_key=True)
+    address = Column(String)
+    phone_number = Column(String)
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user = relationship("User", back_populates="personal_data", lazy="selectin")
+
+
+class DummyQuery(BaseModel):
+    name: str = None
+    age: int = None
+    personal_data__address: str = None
+
+
+class DummyOrderByQuery(BaseModel):
+    name: Annotated[str, StringConstraints(pattern=regex.ORDER_BY_QUERY)] | None
+    personal_data__address: Annotated[str, StringConstraints(pattern=regex.ORDER_BY_QUERY)] | None
 
 
 @pytest.fixture

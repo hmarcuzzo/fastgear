@@ -51,6 +51,9 @@ class DummyRepo(AbstractRepository[DummyEntity]):
     def delete(self, delete_statement, db=None):
         return {"raw": None, "affected": 0}
 
+    def soft_delete(self, search_filter, db=None):
+        return {"raw": None, "affected": 0}
+
 
 @pytest.mark.describe("🧪  AbstractRepository")
 class TestAbstractRepository:

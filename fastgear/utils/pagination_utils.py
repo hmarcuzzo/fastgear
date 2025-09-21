@@ -158,7 +158,7 @@ class PaginationUtils:
         paging_options: FindManyOptions,
     ) -> None:
         if PaginationUtils.validate_columns(list(set(selected_columns)), columns_query):
-            (_, _) = PaginationUtils.generating_selected_relationships_and_columns(
+            (_, _) = PaginationUtils.resolve_selected_columns_and_relations(
                 paging_options, list(set(selected_columns)), columns_query, entity
             )
         else:
@@ -272,9 +272,8 @@ class PaginationUtils:
 
         return all(column in query_dto_fields for column in columns)
 
-    # TODO: unit test this method
     @staticmethod
-    def generating_selected_relationships_and_columns(
+    def resolve_selected_columns_and_relations(
         paging_options: FindManyOptions,
         selected_columns: list[str],
         columns_query_dto: ColumnsQueryType,
@@ -283,26 +282,40 @@ class PaginationUtils:
         query_dto_fields = columns_query_dto.model_fields
         entity_relationships = inspect(entity).relationships
 
-        for field in query_dto_fields:
-            if field in entity_relationships:
-                if query_dto_fields[field].is_required() or field in selected_columns:
-                    paging_options.setdefault("relations", []).append(field)
-                    selected_columns.remove(field) if field in selected_columns else None
-                    column_name = list(entity_relationships[field].local_columns)[0].name
-                    selected_columns.append(getattr(entity, column_name))
+        relations = []
+        columns = []
 
-            elif query_dto_fields[field].is_required() and field not in selected_columns:
+        for field, field_info in query_dto_fields.items():
+            if field in entity_relationships:
+                if field_info.is_required() or field in selected_columns:
+                    relations.append(field)
+                    if field in selected_columns:
+                        selected_columns.remove(field)
+                    column_name = list(entity_relationships[field].local_columns)[0].name
+                    columns.append(getattr(entity, column_name))
+            elif field_info.is_required() and field not in selected_columns:
+                columns.append(getattr(entity, field, field))
+
+            elif field_info.is_required() and field not in selected_columns:
                 selected_columns.append(getattr(entity, field, field))
 
         for column in selected_columns:
-            if isinstance(column, str) and hasattr(entity, column):
-                selected_columns[selected_columns.index(column)] = getattr(entity, column)
+            columns.extend(
+                [
+                    getattr(entity, column)
+                    if isinstance(column, str) and hasattr(entity, column)
+                    else column
+                ]
+            )
 
-        if not paging_options.get("relations"):
+        if relations:
+            paging_options["relations"] = relations
+        else:
             paging_options.pop("relations", None)
 
-        paging_options["select"] = paging_options.get("select", []) + selected_columns
-        if not paging_options.get("select"):
+        if columns:
+            paging_options["select"] = paging_options.get("select", []) + columns
+        else:
             paging_options.pop("select", None)
 
         return paging_options, selected_columns
@@ -318,7 +331,7 @@ class PaginationUtils:
             Use PaginationUtils.to_page_response(items, total, offset, size).
         """
         warnings.warn(
-            "generate_page() está depreciado. Use PaginationUtils.to_page_response().",
+            "generate_page() is deprecated and will be removed in a future release. ",
             DeprecationWarning,
             stacklevel=2,
         )

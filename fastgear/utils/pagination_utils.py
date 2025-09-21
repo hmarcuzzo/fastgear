@@ -265,7 +265,6 @@ class PaginationUtils:
 
         return True
 
-    # TODO: unit test this method
     @staticmethod
     def validate_columns(columns: list[str], columns_query_dto: ColumnsQueryType) -> bool:
         query_dto_fields = columns_query_dto.model_fields

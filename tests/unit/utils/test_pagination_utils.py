@@ -459,6 +459,72 @@ class TestPaginationUtils:
         # returned selected should include the original (empty) list or remain a list
         assert isinstance(result_selected, list)
 
+    @pytest.mark.it(
+        "✅  resolve_selected_columns_and_relations Should handle fields that are entity relationships"
+    )
+    def test_resolve_selected_columns_handles_relationship_field(self) -> None:
+        class Cols(BaseModel):
+            personal_data: str | None
+
+        paging_options = {}
+        selected_columns = ["personal_data"]
+
+        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
+            paging_options, selected_columns.copy(), Cols, User
+        )
+
+        # relation should be set
+        assert "relations" in result_opts
+        assert result_opts["relations"] == ["personal_data"]
+        # select should not contain personal_data because it's a relationship
+        assert "select" not in result_opts
+        # returned selected should not contain personal_data because it's a relationship
+        assert "personal_data" not in result_selected
+
+    @pytest.mark.it(
+        "❌ resolve_selected_columns_and_relations Should add required relationship when not selected"
+    )
+    def test_resolve_selected_columns_add_relationship_when_not_selected(self) -> None:
+        class Cols(BaseModel):
+            personal_data: str
+
+        paging_options = {}
+        selected_columns: list[str] = []  # relationship not selected and not required
+
+        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
+            paging_options, selected_columns.copy(), Cols, User
+        )
+
+        # relation should be set because personal_data is required
+        assert "relations" in result_opts
+        # returned selected stays empty
+        assert result_selected == selected_columns
+
+    @pytest.mark.it(
+        "✅ resolve_selected_columns_and_relations Should map selected non-relationship field and ignore unselected relationship"
+    )
+    def test_resolve_selected_columns_maps_selected_non_relationship_and_ignores_relationship(
+        self,
+    ) -> None:
+        class Cols(BaseModel):
+            personal_data: str = None
+            name: str = None
+
+        paging_options = {}
+        selected_columns = ["name"]  # non-relationship selected
+
+        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
+            paging_options, selected_columns.copy(), Cols, User
+        )
+
+        # relation should not be set because personal_data wasn't selected and is optional
+        assert "relations" not in result_opts
+        # select should contain mapped name attribute
+        assert "select" in result_opts
+        assert any("name" in str(c) for c in result_opts["select"]) is True
+        # returned selected list should still contain the original selected (name handled)
+        assert result_selected == selected_columns
+
     @pytest.mark.it("✅  validate_columns should return True for empty list")
     def test_validate_columns_empty(self) -> None:
         assert PaginationUtils.validate_columns([], DummyQuery) is True

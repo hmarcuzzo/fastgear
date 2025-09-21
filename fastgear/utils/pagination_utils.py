@@ -290,13 +290,8 @@ class PaginationUtils:
                     relations.append(field)
                     if field in selected_columns:
                         selected_columns.remove(field)
-                    column_name = list(entity_relationships[field].local_columns)[0].name
-                    columns.append(getattr(entity, column_name))
             elif field_info.is_required() and field not in selected_columns:
                 columns.append(getattr(entity, field, field))
-
-            elif field_info.is_required() and field not in selected_columns:
-                selected_columns.append(getattr(entity, field, field))
 
         for column in selected_columns:
             columns.extend(

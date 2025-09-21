@@ -18,7 +18,7 @@ class TestRegexExpressions:
         assert not re.match(ORDER_BY_QUERY, query)
 
     @pytest.mark.it("✅ Should validate ANY_CHAR regex correctly")
-    @pytest.mark.parametrize("query", ["abc", "123"])
+    @pytest.mark.parametrize("query", ["abc", "123", "A1B2C3", "valid_name_123"])
     def test_any_char_correct(self, query: str) -> None:
         assert re.match(ANY_CHAR, query)
 

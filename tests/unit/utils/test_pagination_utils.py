@@ -1,6 +1,7 @@
 # ruff: noqa: PLR2004
 
 import pytest
+from pydantic import BaseModel
 
 from fastgear.types.http_exceptions import BadRequestException
 from fastgear.utils import PaginationUtils
@@ -394,3 +395,78 @@ class TestPaginationUtils:
         result = PaginationUtils.aggregate_values_by_field(entries, Q)
 
         assert result == [{"field": "tags", "value": ["a", "b"]}]
+
+    @pytest.mark.it(
+        "✅  resolve_selected_columns_and_relations Should map existing entity attributes into select and not set relations when none"
+    )
+    def test_resolve_selected_columns_maps_attributes(
+        self, pagination_utils: PaginationUtils
+    ) -> None:
+        paging_options = {}
+        selected_columns = ["name", "age"]
+
+        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
+            paging_options, selected_columns.copy(), DummyQuery, User
+        )
+
+        # select should be created and contain SQLAlchemy column attributes
+        assert "select" in result_opts
+        assert len(result_opts["select"]) == 2
+        assert any(".name" in str(c) or "name" in str(c) for c in result_opts["select"])
+        assert any(".age" in str(c) or "age" in str(c) for c in result_opts["select"])
+        # no relations expected
+        assert "relations" not in result_opts
+        # returned selected list should be unchanged in this path
+        assert result_selected == selected_columns
+
+    @pytest.mark.it(
+        "✅  resolve_selected_columns_and_relations Should keep non-existing columns as strings"
+    )
+    def test_resolve_selected_columns_keeps_nonexistent_strings(
+        self, pagination_utils: PaginationUtils
+    ) -> None:
+        paging_options = {}
+        selected_columns = ["nonexistent"]
+
+        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
+            paging_options, selected_columns.copy(), DummyQuery, User
+        )
+
+        assert "select" in result_opts
+        assert result_opts["select"][0] == "nonexistent"
+        assert result_selected == selected_columns
+
+    @pytest.mark.it(
+        "✅  resolve_selected_columns_and_relations Should add required fields from Schema when missing"
+    )
+    def test_resolve_selected_columns_adds_required_fields(
+        self, pagination_utils: PaginationUtils
+    ) -> None:
+        # create a Schema with a required field (no default) so model_fields marks it required
+        class RequiredCols(BaseModel):
+            name: str
+
+        paging_options = {}
+        selected_columns: list[str] = []
+
+        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
+            paging_options, selected_columns, RequiredCols, User
+        )
+
+        assert "select" in result_opts
+        # the required `name` should have been added as an attribute on the entity
+        assert any("name" in str(c) for c in result_opts["select"]) is True
+        # returned selected should include the original (empty) list or remain a list
+        assert isinstance(result_selected, list)
+
+    @pytest.mark.it("✅  validate_columns should return True for empty list")
+    def test_validate_columns_empty(self) -> None:
+        assert PaginationUtils.validate_columns([], DummyQuery) is True
+
+    @pytest.mark.it("✅  validate_columns should return True when all columns are valid")
+    def test_validate_columns_all_valid(self) -> None:
+        assert PaginationUtils.validate_columns(["name", "age"], DummyQuery) is True
+
+    @pytest.mark.it("❌  validate_columns should return False when any column is invalid")
+    def test_validate_columns_invalid(self) -> None:
+        assert PaginationUtils.validate_columns(["name", "nonexistent"], DummyQuery) is False

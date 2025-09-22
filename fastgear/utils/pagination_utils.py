@@ -210,7 +210,6 @@ class PaginationUtils:
             logger.info(message)
             raise BadRequestException(message)
 
-    # TODO: unit test this method
     @staticmethod
     def _check_and_raise_for_invalid_search_filters(
         pagination_search: list[PaginationSearch], find_all_query: F = None
@@ -220,7 +219,6 @@ class PaginationUtils:
         ):
             raise BadRequestException("Invalid search filters")
 
-    # TODO: unit test this method
     @staticmethod
     def _is_valid_sort_params(sort: list[PaginationSort], order_by_query_schema: OB) -> bool:
         query_schema_fields = order_by_query_schema.model_fields
@@ -230,7 +228,6 @@ class PaginationUtils:
 
         return is_valid_field and is_valid_direction
 
-    # TODO: unit test this method
     @staticmethod
     def _is_valid_search_params(search: list[PaginationSearch], find_all_query: F) -> bool:
         query_dto_fields = find_all_query.model_fields
@@ -243,17 +240,15 @@ class PaginationUtils:
         except KeyError as e:
             logger.info(f"Invalid search filter: {e}")
             raise BadRequestException(f"Invalid search filters: {e}")
+
         for search_param in search_params:
-            if (
-                search_param["field"] not in query_dto_fields
-                or PaginationUtils.assert_search_param_convertible(find_all_query, search_param)
-                is False
-            ):
+            if search_param["field"] not in query_dto_fields:
                 return False
+
+            PaginationUtils.assert_search_param_convertible(find_all_query, search_param)
 
         return True
 
-    # TODO: unit test this method
     @staticmethod
     def validate_required_search_filter(
         search: list[PaginationSearch], query_dto_fields: F

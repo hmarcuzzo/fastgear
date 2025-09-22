@@ -536,3 +536,204 @@ class TestPaginationUtils:
     @pytest.mark.it("❌  validate_columns should return False when any column is invalid")
     def test_validate_columns_invalid(self) -> None:
         assert PaginationUtils.validate_columns(["name", "nonexistent"], DummyQuery) is False
+
+    @pytest.mark.it(
+        "✅  validate_required_search_filter should return True when all required fields are present"
+    )
+    def test_validate_required_search_filter_all_present(self) -> None:
+        class Q(BaseModel):
+            name: str
+            age: int | None = None
+
+        search = [{"field": "name", "value": "john"}]
+        assert PaginationUtils.validate_required_search_filter(search, Q.model_fields) is True
+
+    @pytest.mark.it(
+        "❌  validate_required_search_filter should return False when a required field is missing"
+    )
+    def test_validate_required_search_filter_missing_required(self) -> None:
+        class Q(BaseModel):
+            name: str
+            age: int | None = None
+
+        search = [{"field": "age", "value": "33"}]  # missing required 'name'
+        assert PaginationUtils.validate_required_search_filter(search, Q.model_fields) is False
+
+    @pytest.mark.it(
+        "✅  validate_required_search_filter should return True when there are no required fields"
+    )
+    def test_validate_required_search_filter_no_required_fields(self) -> None:
+        class Q(BaseModel):
+            name: str | None = None
+            age: int | None = None
+
+        search: list[dict[str, str]] = []
+        assert PaginationUtils.validate_required_search_filter(search, Q.model_fields) is True
+
+    @pytest.mark.it(
+        "✅  validate_required_search_filter should return True when multiple required fields are present"
+    )
+    def test_validate_required_search_filter_multiple_required_present(self) -> None:
+        class Q(BaseModel):
+            name: str
+            age: int
+
+        search = [{"field": "name", "value": "john"}, {"field": "age", "value": "30"}]
+        assert PaginationUtils.validate_required_search_filter(search, Q.model_fields) is True
+
+    @pytest.mark.it("✅  _is_valid_search_params should return True for valid inputs")
+    def test__is_valid_search_params_valid(self) -> None:
+        class Q(BaseModel):
+            name: str
+
+        search = [{"field": "name", "value": "john"}]
+        assert PaginationUtils._is_valid_search_params(search, Q) is True
+
+    @pytest.mark.it(
+        "❌  _is_valid_search_params should return False when required fields are missing"
+    )
+    def test__is_valid_search_params_missing_required(self) -> None:
+        class Q(BaseModel):
+            name: str
+
+        search: list[dict[str, str]] = []
+        assert PaginationUtils._is_valid_search_params(search, Q) is False
+
+    @pytest.mark.it(
+        "❌  _is_valid_search_params should raise BadRequestException for unknown field"
+    )
+    def test__is_valid_search_params_unknown_field_raises(self) -> None:
+        class Q(BaseModel):
+            name: str = None
+
+        search = [{"field": "nonexistent", "value": "x"}]
+        with pytest.raises(BadRequestException):
+            PaginationUtils._is_valid_search_params(search, Q)
+
+    @pytest.mark.it(
+        "❌  _is_valid_search_params should raise BadRequestException for unconvertible value"
+    )
+    def test__is_valid_search_params_unconvertible_value_raises(self) -> None:
+        class Q(BaseModel):
+            age: int
+
+        search = [{"field": "age", "value": "not_an_int"}]
+        with pytest.raises(BadRequestException):
+            PaginationUtils._is_valid_search_params(search, Q)
+
+    @pytest.mark.it(
+        "✅  _is_valid_search_params should aggregate multiple list values and validate"
+    )
+    def test__is_valid_search_params_aggregate_list_values(self) -> None:
+        class Q(BaseModel):
+            tags: list[str]
+
+        search = [{"field": "tags", "value": "a"}, {"field": "tags", "value": "b"}]
+        assert PaginationUtils._is_valid_search_params(search, Q) is True
+
+    @pytest.mark.it(
+        "❌  _is_valid_search_params should return False when field is annotated as ClassVar (present in type hints but not in model_fields)"
+    )
+    def test__is_valid_search_params_field_not_in_model_fields_returns_false(self) -> None:
+        from typing import ClassVar
+
+        class Q(BaseModel):
+            # Present in typing.get_type_hints but not in Pydantic model_fields
+            name: ClassVar[str] = "default"
+
+        search = [{"field": "name", "value": "john"}]
+
+        assert PaginationUtils._is_valid_search_params(search, Q) is False
+
+    @pytest.mark.it("✅  _is_valid_sort_params should return True for valid fields and directions")
+    def test__is_valid_sort_params_valid(self) -> None:
+        class OrderBy(BaseModel):
+            name: str
+            age: str | None = None
+
+        sort = [{"field": "name", "by": "ASC"}, {"field": "age", "by": "DESC"}]
+        assert PaginationUtils._is_valid_sort_params(sort, OrderBy) is True
+
+    @pytest.mark.it("❌  _is_valid_sort_params should return False when field not in schema")
+    def test__is_valid_sort_params_invalid_field(self) -> None:
+        class OrderBy(BaseModel):
+            name: str
+
+        sort = [{"field": "unknown", "by": "ASC"}]
+        assert PaginationUtils._is_valid_sort_params(sort, OrderBy) is False
+
+    @pytest.mark.it("❌  _is_valid_sort_params should return False when direction is invalid")
+    def test__is_valid_sort_params_invalid_direction(self) -> None:
+        class OrderBy(BaseModel):
+            name: str
+
+        sort = [{"field": "name", "by": "UP"}]
+        assert PaginationUtils._is_valid_sort_params(sort, OrderBy) is False
+
+    @pytest.mark.it(
+        "❌  _is_valid_sort_params should return False when any of multiple sorts is invalid"
+    )
+    def test__is_valid_sort_params_mixed_valid_invalid(self) -> None:
+        class OrderBy(BaseModel):
+            name: str
+            age: str | None = None
+
+        sort = [{"field": "name", "by": "ASC"}, {"field": "nonexistent", "by": "DESC"}]
+        assert PaginationUtils._is_valid_sort_params(sort, OrderBy) is False
+
+    @pytest.mark.it("✅  _is_valid_sort_params should return True for empty sort list")
+    def test__is_valid_sort_params_empty(self) -> None:
+        class OrderBy(BaseModel):
+            name: str
+
+        sort: list[dict[str, str]] = []
+        # all([]) is True for both checks -> overall True
+        assert PaginationUtils._is_valid_sort_params(sort, OrderBy) is True
+
+    @pytest.mark.it(
+        "✅  _check_and_raise_for_invalid_search_filters should do nothing when find_all_query is None"
+    )
+    def test__check_and_raise_for_invalid_search_filters_no_schema(self) -> None:
+        search = [{"field": "name", "value": "john"}]
+        # Should not raise when no schema is provided
+        PaginationUtils._check_and_raise_for_invalid_search_filters(search, None)
+
+    @pytest.mark.it(
+        "✅  _check_and_raise_for_invalid_search_filters should not raise for valid filters"
+    )
+    def test__check_and_raise_for_invalid_search_filters_valid(self) -> None:
+        class Q(BaseModel):
+            name: str
+
+        search = [{"field": "name", "value": "john"}]
+        # Valid given schema -> should not raise
+        PaginationUtils._check_and_raise_for_invalid_search_filters(search, Q)
+
+    @pytest.mark.it(
+        "❌  _check_and_raise_for_invalid_search_filters should raise BadRequestException when required field is missing"
+    )
+    def test__check_and_raise_for_invalid_search_filters_missing_required_raises(self) -> None:
+        class Q(BaseModel):
+            name: str  # required
+            age: int | None = None
+
+        search = [{"field": "age", "value": "33"}]  # missing required 'name'
+        with pytest.raises(BadRequestException) as excinfo:
+            PaginationUtils._check_and_raise_for_invalid_search_filters(search, Q)
+
+        assert str(excinfo.value) == "Invalid search filters"
+
+    @pytest.mark.it(
+        "❌  _check_and_raise_for_invalid_search_filters should propagate BadRequestException for unknown field"
+    )
+    def test__check_and_raise_for_invalid_search_filters_unknown_field_propagates(self) -> None:
+        class Q(BaseModel):
+            name: str
+
+        search = [{"field": "unknown", "value": "x"}]
+        # aggregate_values_by_field will raise KeyError internally, which becomes BadRequestException
+        with pytest.raises(BadRequestException) as excinfo:
+            PaginationUtils._check_and_raise_for_invalid_search_filters(search, Q)
+
+        # Message should include the invalid field reference
+        assert "Invalid search filters" in str(excinfo.value.msg)

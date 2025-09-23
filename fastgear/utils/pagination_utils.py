@@ -149,7 +149,6 @@ class PaginationUtils:
             else where_clauses
         )
 
-    # TODO: unit test this method
     @staticmethod
     def select_columns(
         selected_columns: list[str],
@@ -166,7 +165,6 @@ class PaginationUtils:
             logger.info(message)
             raise BadRequestException(message)
 
-    # TODO: unit test this method
     @staticmethod
     def format_skip_take_options(paging_options: Pagination) -> FindManyOptions:
         def extract_value(val: object) -> object:
@@ -176,7 +174,6 @@ class PaginationUtils:
         take = int(extract_value(paging_options["take"]))
         return FindManyOptions(skip=(skip - 1) * take, take=take)
 
-    # TODO: unit test this method
     @staticmethod
     def _create_pagination_sort(sort_params: list[str]) -> list[PaginationSort]:
         pagination_sorts = []
@@ -187,7 +184,6 @@ class PaginationUtils:
             )
         return pagination_sorts
 
-    # TODO: unit test this method
     @staticmethod
     def _create_pagination_search(search_params: list[str]) -> list[PaginationSearch]:
         pagination_search = []
@@ -198,7 +194,6 @@ class PaginationUtils:
             )
         return pagination_search
 
-    # TODO: unit test this method
     @staticmethod
     def _check_and_raise_for_invalid_sort_filters(
         pagination_sorts: list[PaginationSort], order_by_query: OB = None

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from fastgear.types.http_exceptions import BadRequestException
 from fastgear.utils import PaginationUtils
 from tests.fixtures.utils.pagination_utils_fixtures import (  # noqa: F401
+    DummyOrderByQuery,
     DummyQuery,
     User,
     pagination_utils,
@@ -737,3 +738,188 @@ class TestPaginationUtils:
 
         # Message should include the invalid field reference
         assert "Invalid search filters" in str(excinfo.value.msg)
+
+    @pytest.mark.it(
+        "✅  _check_and_raise_for_invalid_sort_filters should do nothing when order_by_query is None"
+    )
+    def test__check_and_raise_for_invalid_sort_filters_no_schema(self) -> None:
+        sorts = [{"field": "name", "by": "ASC"}]
+        # Should not raise when no schema is provided
+        PaginationUtils._check_and_raise_for_invalid_sort_filters(sorts, None)
+
+    @pytest.mark.it(
+        "✅  _check_and_raise_for_invalid_sort_filters should not raise for valid sort filters"
+    )
+    def test__check_and_raise_for_invalid_sort_filters_valid(self) -> None:
+        sorts = [{"field": "name", "by": "ASC"}, {"field": "personal_data__address", "by": "DESC"}]
+        PaginationUtils._check_and_raise_for_invalid_sort_filters(sorts, DummyOrderByQuery)
+
+    @pytest.mark.it(
+        "❌  _check_and_raise_for_invalid_sort_filters should raise when field is not in schema"
+    )
+    def test__check_and_raise_for_invalid_sort_filters_invalid_field_raises(self) -> None:
+        sorts = [{"field": "unknown", "by": "ASC"}]
+        with pytest.raises(BadRequestException) as excinfo:
+            PaginationUtils._check_and_raise_for_invalid_sort_filters(sorts, DummyOrderByQuery)
+        assert "Invalid sort filters" in str(excinfo.value)
+
+    @pytest.mark.it(
+        "❌  _check_and_raise_for_invalid_sort_filters should raise when direction is invalid"
+    )
+    def test__check_and_raise_for_invalid_sort_filters_invalid_direction_raises(self) -> None:
+        sorts = [{"field": "name", "by": "UP"}]  # invalid direction
+        with pytest.raises(BadRequestException) as excinfo:
+            PaginationUtils._check_and_raise_for_invalid_sort_filters(sorts, DummyOrderByQuery)
+        assert "Invalid sort filters" in str(excinfo.value)
+
+    @pytest.mark.it("✅  _create_pagination_search should build list of field/value mappings")
+    def test__create_pagination_search_basic(self) -> None:
+        entries = ["name:john", "age:30"]
+        result = PaginationUtils._create_pagination_search(entries)
+
+        assert isinstance(result, list)
+        assert result[0]["field"] == "name"
+        assert result[0]["value"] == "john"
+        assert result[1]["field"] == "age"
+        assert result[1]["value"] == "30"
+
+    @pytest.mark.it("✅  _create_pagination_search should split only on the first colon")
+    def test__create_pagination_search_splits_on_first_colon_only(self) -> None:
+        entries = ["note:hello:world"]
+        result = PaginationUtils._create_pagination_search(entries)
+
+        assert result == [{"field": "note", "value": "hello:world"}]
+
+    @pytest.mark.it(
+        "❌  _create_pagination_search should raise IndexError for invalid format (no colon)"
+    )
+    def test__create_pagination_search_invalid_format_raises(self) -> None:
+        entries = ["invalid"]
+        with pytest.raises(IndexError):
+            PaginationUtils._create_pagination_search(entries)
+
+    @pytest.mark.it("✅  _create_pagination_sort should build list of field/by mappings")
+    def test__create_pagination_sort_basic(self) -> None:
+        entries = ["name:ASC", "age:DESC"]
+        result = PaginationUtils._create_pagination_sort(entries)
+
+        assert isinstance(result, list)
+        assert result[0]["field"] == "name"
+        assert result[0]["by"] == "ASC"
+        assert result[1]["field"] == "age"
+        assert result[1]["by"] == "DESC"
+
+    @pytest.mark.it("✅  _create_pagination_sort should split only on the first colon")
+    def test__create_pagination_sort_splits_on_first_colon_only(self) -> None:
+        entries = ["note:hello:world"]
+        result = PaginationUtils._create_pagination_sort(entries)
+
+        assert result == [{"field": "note", "by": "hello:world"}]
+
+    @pytest.mark.it(
+        "❌  _create_pagination_sort should raise IndexError for invalid format (no colon)"
+    )
+    def test__create_pagination_sort_invalid_format_raises(self) -> None:
+        entries = ["invalid"]
+        with pytest.raises(IndexError):
+            PaginationUtils._create_pagination_sort(entries)
+
+    @pytest.mark.it("✅  format_skip_take_options Should convert page 1 and size to offset 0")
+    def test_format_skip_take_options_first_page_zero_offset(self) -> None:
+        paging_options = {"skip": 1, "take": 10}
+        result = PaginationUtils.format_skip_take_options(paging_options)
+        assert result["skip"] == 0
+        assert result["take"] == 10
+
+    @pytest.mark.it(
+        "✅  format_skip_take_options Should compute offset = (page-1)*size for page > 1"
+    )
+    def test_format_skip_take_options_page_two(self) -> None:
+        paging_options = {"skip": 2, "take": 10}
+        result = PaginationUtils.format_skip_take_options(paging_options)
+        assert result["skip"] == 10
+        assert result["take"] == 10
+
+    @pytest.mark.it("✅  format_skip_take_options Should handle values wrapped with .default")
+    def test_format_skip_take_options_handles_default_wrapped_values(self) -> None:
+        class V:
+            def __init__(self, default: int) -> None:
+                self.default = default
+
+        paging_options = {"skip": V(3), "take": V(5)}
+        result = PaginationUtils.format_skip_take_options(paging_options)
+        assert result["skip"] == (3 - 1) * 5
+        assert result["take"] == 5
+
+    @pytest.mark.it("✅  format_skip_take_options Should accept numeric strings and cast to int")
+    def test_format_skip_take_options_accepts_string_numbers(self) -> None:
+        paging_options = {"skip": "4", "take": "3"}
+        result = PaginationUtils.format_skip_take_options(paging_options)
+        assert result["skip"] == (4 - 1) * 3
+        assert result["take"] == 3
+
+    @pytest.mark.it("✅  select_columns should map existing entity attributes into select")
+    def test_select_columns_success_maps_attributes(self) -> None:
+        paging_options: dict = {}
+        selected_columns = ["name", "age"]
+
+        PaginationUtils.select_columns(selected_columns, DummyQuery, User, paging_options)
+
+        assert "select" in paging_options
+        assert len(paging_options["select"]) == 2
+        select_str = ",".join(map(str, paging_options["select"]))
+        assert "name" in select_str
+        assert "age" in select_str
+
+    @pytest.mark.it("❌  select_columns should raise BadRequestException for any invalid column")
+    def test_select_columns_invalid_raises(self) -> None:
+        paging_options: dict = {}
+        selected_columns = ["unknown"]
+
+        with pytest.raises(BadRequestException) as excinfo:
+            PaginationUtils.select_columns(selected_columns, DummyQuery, User, paging_options)
+
+        assert "Invalid columns" in str(excinfo.value)
+
+    @pytest.mark.it(
+        "✅  select_columns should add required fields from Schema when selected is empty"
+    )
+    def test_select_columns_empty_adds_required_from_schema(self) -> None:
+        class RequiredCols(BaseModel):
+            name: str  # required
+
+        paging_options: dict = {}
+        selected_columns: list[str] = []
+
+        PaginationUtils.select_columns(selected_columns, RequiredCols, User, paging_options)
+
+        assert "select" in paging_options
+        select_str = ",".join(map(str, paging_options["select"]))
+        assert "name" in select_str
+
+    @pytest.mark.it("✅  select_columns should deduplicate selected columns")
+    def test_select_columns_deduplicates(self) -> None:
+        paging_options: dict = {}
+        selected_columns = ["name", "name", "age", "age"]
+
+        PaginationUtils.select_columns(selected_columns, DummyQuery, User, paging_options)
+
+        assert "select" in paging_options
+        assert len(paging_options["select"]) == 2
+        select_str = ",".join(map(str, paging_options["select"]))
+        assert "name" in select_str
+        assert "age" in select_str
+
+    @pytest.mark.it("✅  select_columns should set relations when a relationship field is selected")
+    def test_select_columns_sets_relations_when_relationship_selected(self) -> None:
+        class Cols(BaseModel):
+            personal_data: str | None = None
+
+        paging_options: dict = {}
+        selected_columns = ["personal_data"]
+
+        PaginationUtils.select_columns(selected_columns, Cols, User, paging_options)
+
+        assert "relations" in paging_options
+        assert paging_options["relations"] == ["personal_data"]
+        assert "select" not in paging_options

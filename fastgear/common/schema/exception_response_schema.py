@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class DetailResponseSchema(BaseModel):
-    loc: list[str] = Field(title="Location")
+    loc: list[str | int] = Field(title="Location")
     msg: str = Field(title="Message")
     type: str = Field(title="Error Type")
 

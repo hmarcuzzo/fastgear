@@ -3,11 +3,11 @@
 from unittest.mock import Mock
 
 import pytest
-from sqlalchemy import BinaryExpression
 
 import fastgear.decorators.pagination_with_search_decorator as mod
 from fastgear.decorators.pagination_with_search_decorator import PaginationWithSearchOptions
-from tests.fixtures.utils.pagination_utils_fixtures import DummyOrderByQuery, DummyQuery, User
+from fastgear.types.pagination import Pagination
+from tests.fixtures.utils.pagination_utils_fixtures import DummyOrderByQuery, DummyQuery
 
 
 @pytest.mark.describe("🧪  PaginationWithSearchOptions")
@@ -17,14 +17,14 @@ class TestPaginationWithSearchOptions:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         mock_utils = Mock()
-        mock_utils.build_pagination_options.return_value = {"skip": 5, "take": 10}
-        mock_utils.get_paging_data.return_value = {"data": "ok"}
+        mock_utils.build_pagination_options.return_value = Pagination(
+            skip=5, take=10, sort=[], search=[], columns=None
+        )
         mock_utils.assert_no_blocked_attributes = Mock()
 
         monkeypatch.setattr(mod, "PaginationUtils", lambda: mock_utils)
 
         opts = PaginationWithSearchOptions(
-            entity="EntityX",
             columns_query="cols_query",
             find_all_query="find_q",
             order_by_query="order_q",
@@ -39,78 +39,16 @@ class TestPaginationWithSearchOptions:
             opts.block_attributes, ["field:value"], ["f:by"], None, None
         )
         mock_utils.build_pagination_options.assert_called_once_with(
-            2, 10, ["field:value"], ["f:by"], "find_q", "order_q"
+            2, 10, ["field:value"], None, ["f:by"], None, "cols_query", "find_q", "order_q"
         )
-        mock_utils.get_paging_data.assert_called_once_with(
-            "EntityX",
-            mock_utils.build_pagination_options.return_value,
-            [],
-            None,
-            "cols_query",
-            "find_q",
-        )
-        assert result == mock_utils.get_paging_data.return_value
+        assert result == mock_utils.build_pagination_options.return_value
 
-    @pytest.mark.it("✅  Should forward provided columns to get_paging_data")
-    def test_columns_provided_are_forwarded(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        mock_utils = Mock()
-        mock_utils.build_pagination_options.return_value = {"skip": 0, "take": 5}
-        mock_utils.get_paging_data.return_value = {"items": []}
-        mock_utils.assert_no_blocked_attributes = Mock()
-
-        monkeypatch.setattr(mod, "PaginationUtils", lambda: mock_utils)
-
-        opts = PaginationWithSearchOptions(
-            entity="E",
-            columns_query="cols",
-            find_all_query=None,
-            order_by_query=None,
-            block_attributes=[],
-        )
-
-        cols = ["id", "name"]
-        _ = opts.__call__(page=1, size=5, search=None, sort=None, columns=cols, search_all="x")
-
-        mock_utils.get_paging_data.assert_called_once_with(
-            "E", mock_utils.build_pagination_options.return_value, cols, "x", "cols", None
-        )
-
-    @pytest.mark.it(
-        "✅  Should convert columns=None to an empty list before calling get_paging_data"
-    )
-    def test_columns_none_converted_to_empty_list(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        mock_utils = Mock()
-        mock_utils.build_pagination_options.return_value = {"skip": 1, "take": 2}
-        mock_utils.get_paging_data.return_value = {"ok": True}
-        mock_utils.assert_no_blocked_attributes = Mock()
-
-        monkeypatch.setattr(mod, "PaginationUtils", lambda: mock_utils)
-
-        opts = PaginationWithSearchOptions(
-            entity="Ent",
-            columns_query="c",
-            find_all_query=None,
-            order_by_query=None,
-            block_attributes=None,
-        )
-
-        res = opts.__call__(page=1, size=2, search=None, sort=None, columns=None, search_all=None)
-
-        mock_utils.get_paging_data.assert_called_once_with(
-            "Ent", mock_utils.build_pagination_options.return_value, [], None, "c", None
-        )
-        assert res == mock_utils.get_paging_data.return_value
-
-    @pytest.mark.it("✅  Should initialize correctly with User, DummyQuery and DummyOrderByQuery")
-    def test_init_with_user_dummyquery_dummyorderbyquery(self):
+    @pytest.mark.it("✅  Should initialize correctly with DummyQuery and DummyOrderByQuery")
+    def test_init_with_dummyquery_dummyorderbyquery(self):
         options = PaginationWithSearchOptions(
-            entity=User,
-            columns_query=DummyQuery,
-            find_all_query=DummyQuery,
-            order_by_query=DummyOrderByQuery,
+            columns_query=DummyQuery, find_all_query=DummyQuery, order_by_query=DummyOrderByQuery
         )
 
-        assert options.entity is User
         assert options.columns_query is DummyQuery
         assert options.find_all_query is DummyQuery
         assert options.order_by_query is DummyOrderByQuery
@@ -119,6 +57,5 @@ class TestPaginationWithSearchOptions:
             page=1, size=5, search=["name:john", "personal_data__address:street"]
         )
 
-        assert {"field": "personal_data__address", "value": "street"} in result["where"]
-        assert BinaryExpression in [type(cond) for cond in result["where"]]
-        assert len(result["where"]) == 2
+        assert {"field": "personal_data__address", "value": "street"} in result.search
+        assert len(result.search) == 2

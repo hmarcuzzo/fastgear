@@ -14,6 +14,7 @@ from fastgear.common.database.sqlalchemy.repository_utils.select_constructor imp
 from fastgear.types.delete_result import DeleteResult
 from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.find_one_options import FindOneOptions
+from fastgear.types.pagination import Pagination
 from fastgear.types.update_result import UpdateResult
 
 EntityType = TypeVar("EntityType")
@@ -165,7 +166,7 @@ class AbstractRepository(ABC, Generic[EntityType]):
 
     @abstractmethod
     def find_and_count(
-        self, search_filter: FindManyOptions = None, db: SessionType = None
+        self, search_filter: FindManyOptions | Pagination = None, db: SessionType = None
     ) -> tuple[Sequence[EntityType], int]:
         """Abstract method to find and count records. Implementation can be sync or async.
 

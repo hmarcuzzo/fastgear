@@ -13,6 +13,7 @@ from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.find_one_options import FindOneOptions
 from fastgear.types.generic_types_var import EntityType
 from fastgear.types.http_exceptions import NotFoundException
+from fastgear.types.pagination import Pagination
 from fastgear.types.update_result import UpdateResult
 
 
@@ -235,8 +236,9 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
             select(func.count("*")).select_from(select_stmt.offset(None).limit(None).subquery())
         ).scalar()
 
+    @singledispatchmethod
     def find_and_count(
-        self, search_filter: FindManyOptions = None, db: SyncSessionType = None
+        self, search_filter: FindManyOptions | Pagination = None, db: SyncSessionType = None
     ) -> tuple[Sequence[EntityType], int]:
         """Finds multiple records that match the given filter criteria and counts the total number
             of matching records.
@@ -251,6 +253,23 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
                 the count of matching records.
 
         """
+        message = f"Unsupported type: {type(search_filter)}"
+        self.logger.debug(message)
+        raise NotImplementedError(message)
+
+    @find_and_count.register
+    async def _(
+        self, search_filter: Pagination, db: SyncSessionType = None
+    ) -> tuple[Sequence[EntityType], int]:
+        """Implementation when search_filter is an instance of Pagination."""
+        find_many_options = self.select_constructor.build_options(search_filter)
+        return self.find_and_count(find_many_options, db)
+
+    @find_and_count.register
+    async def _(
+        self, search_filter: FindManyOptions | dict | None, db: SyncSessionType = None
+    ) -> tuple[Sequence[EntityType], int]:
+        """Implementation when search_filter is an instance of FindManyOptions."""
         select_statement = self.select_constructor.build_select_statement(search_filter)
         count = self.count(select_statement, db)
         result = self.find(select_statement, db)

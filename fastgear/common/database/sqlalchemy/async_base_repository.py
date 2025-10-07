@@ -17,6 +17,7 @@ from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.find_one_options import FindOneOptions
 from fastgear.types.generic_types_var import EntityType
 from fastgear.types.http_exceptions import NotFoundException
+from fastgear.types.pagination import Pagination
 from fastgear.types.update_result import UpdateResult
 
 
@@ -241,8 +242,9 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
             )
         ).scalar()
 
+    @singledispatchmethod
     async def find_and_count(
-        self, search_filter: FindManyOptions = None, db: AsyncSessionType = None
+        self, search_filter: FindManyOptions | Pagination = None, db: AsyncSessionType = None
     ) -> tuple[Sequence[EntityType], int]:
         """Finds multiple records in the database that match the given search filter and counts the total number of
         matching records.
@@ -257,6 +259,23 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
                 matching records.
 
         """
+        message = f"Unsupported type: {type(search_filter)}"
+        self.logger.debug(message)
+        raise NotImplementedError(message)
+
+    @find_and_count.register
+    async def _(
+        self, search_filter: Pagination, db: AsyncSessionType = None
+    ) -> tuple[Sequence[EntityType], int]:
+        """Implementation when search_filter is an instance of Pagination."""
+        find_many_options = self.select_constructor.build_options(search_filter)
+        return await self.find_and_count(find_many_options, db)
+
+    @find_and_count.register
+    async def _(
+        self, search_filter: FindManyOptions | dict | None, db: AsyncSessionType = None
+    ) -> tuple[Sequence[EntityType], int]:
+        """Implementation when search_filter is an instance of FindManyOptions."""
         select_statement = self.select_constructor.build_select_statement(search_filter)
         count = await self.count(select_statement, db)
         result = await self.find(select_statement, db)

@@ -21,4 +21,5 @@ def valid_pagination() -> dict:
             {"field": "name", "value": "test"},
             {"field": "email", "value": "test@example.com"},
         ],
+        "columns": ["id", "name", "email"],
     }

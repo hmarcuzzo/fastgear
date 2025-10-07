@@ -1,9 +1,11 @@
 # ruff: noqa: PLR2004
+import re
 
 import pytest
 from pydantic import BaseModel
 
 from fastgear.types.http_exceptions import BadRequestException
+from fastgear.types.pagination import Pagination
 from fastgear.utils import PaginationUtils
 from tests.fixtures.utils.pagination_utils_fixtures import (  # noqa: F401
     DummyOrderByQuery,
@@ -22,13 +24,13 @@ class TestPaginationUtils:
     def test_build_pagination_options_default(
         self, pagination_utils: PaginationUtils, page: int, size: int
     ) -> None:
-        result = pagination_utils.build_pagination_options(page, size, None, None)
+        result = pagination_utils.build_pagination_options(page, size, None, None, None, None, None)
 
-        assert isinstance(result, dict)
-        assert result["skip"] == page
-        assert result["take"] == size
-        assert result["sort"] == []
-        assert result["search"] == []
+        assert isinstance(result, Pagination)
+        assert result.skip == (page - 1) * size
+        assert result.take == size
+        assert result.sort == []
+        assert result.search == []
 
     @pytest.mark.it(
         "✅  build_pagination_options Should build pagination options with provided sort and search"
@@ -39,15 +41,15 @@ class TestPaginationUtils:
         sort = ["name:ASC", "age:DESC"]
         search = ["name:john", "age:30"]
         result = pagination_utils.build_pagination_options(
-            1, 10, search, sort, DummyQuery, DummyQuery
+            1, 10, search, None, sort, None, DummyQuery, DummyQuery
         )
 
-        assert all(isinstance(s, dict) for s in result["sort"])
-        assert all(isinstance(s, dict) for s in result["search"])
-        assert {s["field"] for s in result["sort"]} == {"name", "age"}
-        assert {s["by"] for s in result["sort"]} == {"ASC", "DESC"}
-        assert {s["field"] for s in result["search"]} == {"name", "age"}
-        assert {s["value"] for s in result["search"]} == {"john", "30"}
+        assert all(isinstance(s, dict) for s in result.sort)
+        assert all(isinstance(s, dict) for s in result.search)
+        assert {s["field"] for s in result.sort} == {"name", "age"}
+        assert {s["by"] for s in result.sort} == {"ASC", "DESC"}
+        assert {s["field"] for s in result.search} == {"name", "age"}
+        assert {s["value"] for s in result.search} == {"john", "30"}
 
     @pytest.mark.it(
         "✅  build_pagination_options Should remove duplicate sort and search parameters"
@@ -58,12 +60,12 @@ class TestPaginationUtils:
         sort = ["name:ASC", "name:ASC", "age:DESC"]
         search = ["name:john", "name:john", "age:30"]
         result = pagination_utils.build_pagination_options(
-            1, 10, search, sort, DummyQuery, DummyQuery
+            1, 10, search, None, sort, None, DummyQuery, DummyQuery
         )
 
         expected_sort_serach_length = 2
-        assert len(result["sort"]) == expected_sort_serach_length
-        assert len(result["search"]) == expected_sort_serach_length
+        assert len(result.sort) == expected_sort_serach_length
+        assert len(result.search) == expected_sort_serach_length
 
     @pytest.mark.it(
         "❌  build_pagination_options Should raise BadRequestException for invalid sort format"
@@ -73,7 +75,9 @@ class TestPaginationUtils:
     ) -> None:
         sort = ["invalid:ASC"]
         with pytest.raises(BadRequestException):
-            pagination_utils.build_pagination_options(1, 10, None, sort, DummyQuery, DummyQuery)
+            pagination_utils.build_pagination_options(
+                1, 10, None, None, sort, None, DummyQuery, DummyQuery, DummyQuery
+            )
 
     @pytest.mark.it(
         "❌  build_pagination_options Should raise BadRequestException for invalid search format"
@@ -83,47 +87,70 @@ class TestPaginationUtils:
     ) -> None:
         search = ["invalid:foo"]
         with pytest.raises(BadRequestException):
-            pagination_utils.build_pagination_options(1, 10, search, None, DummyQuery, DummyQuery)
+            pagination_utils.build_pagination_options(
+                1, 10, search, None, None, None, DummyQuery, DummyQuery, DummyQuery
+            )
 
     @pytest.mark.it(
-        "✅  get_paging_data Should return formatted paging data without sort/search/columns"
+        "✅  build_pagination_options Should build pagination options with search_all only (grouped list)"
     )
-    def test_get_paging_data_basic(self, pagination_utils: PaginationUtils) -> None:
-        paging_options = pagination_utils.build_pagination_options(1, 10, None, None)
-
-        result = pagination_utils.get_paging_data(
-            entity=User,
-            paging_options=paging_options,
-            columns=[],
-            search_all=None,
-            columns_query=DummyQuery,
-            find_all_query=None,
+    def test_build_pagination_options_with_search_all_only(
+        self, pagination_utils: PaginationUtils
+    ) -> None:
+        term = "john"
+        result = pagination_utils.build_pagination_options(
+            1, 10, None, term, None, None, DummyQuery, DummyQuery
         )
 
-        # skip should be converted to offset (page 1 -> 0)
-        assert result["skip"] == 0
-        assert result["take"] == 10
-        assert "relations" not in result
-        assert "select" not in result
-        assert result.get("order_by") == []
-        assert result.get("where") == []
+        assert len(result.search) == 1
+        grouped = result.search[0]
+        assert isinstance(grouped, list)
+        fields = {entry["field"] for entry in grouped}
+        assert fields == set(DummyQuery.model_fields.keys())
+        assert all(entry["value"] == term for entry in grouped)
 
-    @pytest.mark.it("✅  get_paging_data Should build where clause when search_all is provided")
-    def test_get_paging_data_search_all(self, pagination_utils: PaginationUtils) -> None:
-        paging_options = pagination_utils.build_pagination_options(1, 10, None, None)
-
-        result = pagination_utils.get_paging_data(
-            entity=User,
-            paging_options=paging_options,
-            columns=[],
-            search_all="john",
-            columns_query=DummyQuery,
-            find_all_query=DummyQuery,
+    @pytest.mark.it(
+        "✅  build_pagination_options Should append search_all group after explicit search filters"
+    )
+    def test_build_pagination_options_with_search_and_search_all(
+        self, pagination_utils: PaginationUtils
+    ) -> None:
+        term = "doe"
+        explicit_search = ["name:jane"]
+        result = pagination_utils.build_pagination_options(
+            1, 10, explicit_search, term, None, None, DummyQuery, DummyQuery
         )
 
-        # when search_all is provided, where should contain at least one clause
-        assert "where" in result
-        assert result["where"] != []
+        assert len(result.search) == 2
+        assert isinstance(result.search[0], dict)
+        assert result.search[0]["field"] == "name"
+        assert result.search[0]["value"] == "jane"
+        assert isinstance(result.search[1], list)
+        grouped = result.search[1]
+        fields = {entry["field"] for entry in grouped}
+        assert fields == set(DummyQuery.model_fields.keys())
+        assert all(entry["value"] == term for entry in grouped)
+
+    @pytest.mark.it("✅  build_pagination_options Should set columns when columns list is provided")
+    def test_build_pagination_options_with_columns(self, pagination_utils: PaginationUtils) -> None:
+        columns = ["name", "age", "name"]  # inclui duplicata
+        result = pagination_utils.build_pagination_options(
+            1, 10, None, None, None, columns, DummyQuery, DummyQuery
+        )
+        assert sorted(result.columns) == ["age", "name"]
+
+    @pytest.mark.it(
+        "❌  build_pagination_options Should raise BadRequestException for invalid columns"
+    )
+    def test_build_pagination_options_invalid_columns_raises(
+        self, pagination_utils: PaginationUtils
+    ) -> None:
+        columns = ["unknown"]
+        with pytest.raises(BadRequestException) as excinfo:
+            pagination_utils.build_pagination_options(
+                1, 10, None, None, None, columns, DummyQuery, DummyQuery
+            )
+        assert "Invalid columns" in str(excinfo.value)
 
     @pytest.mark.it(
         "✅  assert_no_blocked_attributes Should not raise when no blocked attributes are present"
@@ -167,127 +194,6 @@ class TestPaginationUtils:
     )
     def test_is_list_type_hint_parametrized(self, type_hint, expected) -> None:
         assert PaginationUtils._is_list_type_hint(type_hint) is expected
-
-    @pytest.mark.it("✅  sort_data Should correctly sort data with ASC and DESC order")
-    def test_sort_data_basic(self) -> None:
-        from sqlalchemy.sql.elements import UnaryExpression
-
-        paging_options = {"sort": [{"field": "name", "by": "ASC"}, {"field": "age", "by": "DESC"}]}
-        paging_data = {"order_by": []}
-        PaginationUtils.sort_data(paging_options, User, paging_data)
-
-        assert len(paging_data["order_by"]) == 2
-        assert all(isinstance(o, UnaryExpression) for o in paging_data["order_by"])
-        assert str(paging_data["order_by"][0]).endswith(".name ASC")
-        assert str(paging_data["order_by"][1]).endswith(".age DESC")
-
-    @pytest.mark.it("✅  sort_data Should not modify order_by if sort is missing")
-    def test_sort_data_no_sort(self) -> None:
-        paging_options = {}
-        paging_data = {"order_by": []}
-        PaginationUtils.sort_data(paging_options, User, paging_data)
-
-        assert paging_data["order_by"] == []
-
-    @pytest.mark.it("✅  sort_data Should handle sort field not present in entity")
-    def test_sort_data_field_not_in_entity(self) -> None:
-        paging_options = {"sort": [{"field": "nonexistent", "by": "ASC"}]}
-        paging_data = {"order_by": []}
-        PaginationUtils.sort_data(paging_options, User, paging_data)
-
-        assert len(paging_data["order_by"]) == 1
-        assert "nonexistent" in str(paging_data["order_by"][0])
-
-    @pytest.mark.it("✅  sort_data Should handle multiple sort fields")
-    def test_sort_data_multiple_fields(self) -> None:
-        paging_options = {
-            "sort": [
-                {"field": "name", "by": "ASC"},
-                {"field": "age", "by": "DESC"},
-                {"field": "nonexistent", "by": "ASC"},
-            ]
-        }
-        paging_data = {"order_by": []}
-        PaginationUtils.sort_data(paging_options, User, paging_data)
-
-        assert len(paging_data["order_by"]) == 3
-        assert str(paging_data["order_by"][0]).endswith(".name ASC")
-        assert str(paging_data["order_by"][1]).endswith(".age DESC")
-        assert "nonexistent" in str(paging_data["order_by"][2])
-
-    @pytest.mark.it("✅  search_data Should not modify where if search is missing")
-    def test_search_data_no_search(self) -> None:
-        paging_options = {}
-        paging_data = {"where": []}
-        PaginationUtils.search_data(paging_options, User, paging_data)
-
-        assert paging_data["where"] == []
-
-    @pytest.mark.it(
-        "✅  search_data Should build ilike condition when search field exists on entity"
-    )
-    def test_search_data_field_in_entity(self) -> None:
-        paging_options = {"search": [{"field": "name", "value": "john"}]}
-        paging_data = {"where": []}
-        PaginationUtils.search_data(paging_options, User, paging_data)
-
-        assert len(paging_data["where"]) == 1
-        assert "lower(users.name) like lower(:name_1)" in str(paging_data["where"][0]).lower()
-
-    @pytest.mark.it("✅  search_data Should append dict when search field not in entity")
-    def test_search_data_field_not_in_entity(self) -> None:
-        paging_options = {"search": [{"field": "nonexistent", "value": "foo"}]}
-        paging_data = {"where": []}
-        PaginationUtils.search_data(paging_options, User, paging_data)
-
-        assert len(paging_data["where"]) == 1
-        assert isinstance(paging_data["where"][0], dict)
-        assert paging_data["where"][0] == {"field": "nonexistent", "value": "foo"}
-
-    @pytest.mark.it("✅  search_all_data Should not modify where if search_all is missing")
-    def test_search_all_no_search(self) -> None:
-        paging_data = {"where": []}
-        PaginationUtils.search_all_data(User, paging_data, search_all=None, find_all_query=None)
-        assert paging_data["where"] == []
-
-    @pytest.mark.it(
-        "✅  search_all_data Should append an OR clause when all find_all_query fields map to entity columns"
-    )
-    def test_search_all_with_find_all_query_mapping_to_entity(self) -> None:
-        from pydantic import BaseModel
-
-        class LocalQuery(BaseModel):
-            name: str
-            age: str
-
-        paging_data = {"where": []}
-        PaginationUtils.search_all_data(
-            User, paging_data, search_all="john", find_all_query=LocalQuery
-        )
-
-        assert len(paging_data["where"]) == 1
-        clause_str = str(paging_data["where"][0]).lower()
-        assert "like" in clause_str or "ilike" in clause_str
-
-    @pytest.mark.it(
-        "✅  search_all_data Should append list when some find_all_query fields are not entity columns"
-    )
-    def test_search_all_with_mixed_find_all_query_fields(self) -> None:
-        from pydantic import BaseModel
-
-        class MixedQuery(BaseModel):
-            name: str
-            external: str
-
-        paging_data = {"where": []}
-        PaginationUtils.search_all_data(
-            User, paging_data, search_all="foo", find_all_query=MixedQuery
-        )
-
-        assert len(paging_data["where"]) == 1
-        where_item = paging_data["where"][0]
-        assert isinstance(where_item, list)
-        assert any(isinstance(w, dict) and w.get("field") == "external" for w in where_item)
 
     @pytest.mark.it("✅  to_page_response Should return correct page and metadata for offset 0")
     def test_to_page_response_basic(self) -> None:
@@ -397,146 +303,74 @@ class TestPaginationUtils:
 
         assert result == [{"field": "tags", "value": ["a", "b"]}]
 
-    @pytest.mark.it(
-        "✅  resolve_selected_columns_and_relations Should map existing entity attributes into select and not set relations when none"
-    )
-    def test_resolve_selected_columns_maps_attributes(
+    @pytest.mark.it("✅ merge_with_required_columns returns selected columns")
+    def test_merge_with_required_columns_returns_selected_scalar_columns_no_relations(
         self, pagination_utils: PaginationUtils
     ) -> None:
-        paging_options = {}
         selected_columns = ["name", "age"]
 
-        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
-            paging_options, selected_columns.copy(), DummyQuery, User
+        result_selected = PaginationUtils.merge_with_required_columns(
+            selected_columns.copy(), DummyQuery
         )
 
-        # select should be created and contain SQLAlchemy column attributes
-        assert "select" in result_opts
-        assert len(result_opts["select"]) == 2
-        assert any(".name" in str(c) or "name" in str(c) for c in result_opts["select"])
-        assert any(".age" in str(c) or "age" in str(c) for c in result_opts["select"])
-        # no relations expected
-        assert "relations" not in result_opts
-        # returned selected list should be unchanged in this path
+        assert isinstance(result_selected, list)
+        assert len(result_selected) == 2
         assert result_selected == selected_columns
 
-    @pytest.mark.it(
-        "✅  resolve_selected_columns_and_relations Should keep non-existing columns as strings"
-    )
-    def test_resolve_selected_columns_keeps_nonexistent_strings(
+    @pytest.mark.it("✅  merge_with_required_columns Should keep non-existing columns")
+    def test_merge_with_required_columns_keeps_nonexistent(
         self, pagination_utils: PaginationUtils
     ) -> None:
-        paging_options = {}
         selected_columns = ["nonexistent"]
 
-        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
-            paging_options, selected_columns.copy(), DummyQuery, User
+        result_selected = PaginationUtils.merge_with_required_columns(
+            selected_columns.copy(), DummyQuery
         )
 
-        assert "select" in result_opts
-        assert result_opts["select"][0] == "nonexistent"
+        assert isinstance(result_selected, list)
         assert result_selected == selected_columns
 
     @pytest.mark.it(
-        "✅  resolve_selected_columns_and_relations Should add required fields from Schema when missing"
+        "✅  merge_with_required_columns Should add required fields from Schema when missing"
     )
-    def test_resolve_selected_columns_adds_required_fields(
+    def test_merge_with_required_columns_adds_required_fields(
         self, pagination_utils: PaginationUtils
     ) -> None:
         # create a Schema with a required field (no default) so model_fields marks it required
         class RequiredCols(BaseModel):
             name: str
 
-        paging_options = {}
-        selected_columns: list[str] = []
+        result_selected = PaginationUtils.merge_with_required_columns([], RequiredCols)
 
-        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
-            paging_options, selected_columns, RequiredCols, User
-        )
-
-        assert "select" in result_opts
-        # the required `name` should have been added as an attribute on the entity
-        assert any("name" in str(c) for c in result_opts["select"]) is True
-        # returned selected should include the original (empty) list or remain a list
         assert isinstance(result_selected, list)
+        assert result_selected == ["name"]
 
-    @pytest.mark.it(
-        "✅  resolve_selected_columns_and_relations Should handle fields that are entity relationships"
-    )
-    def test_resolve_selected_columns_handles_relationship_field(self) -> None:
-        class Cols(BaseModel):
-            personal_data: str | None
-
-        paging_options = {}
-        selected_columns = ["personal_data"]
-
-        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
-            paging_options, selected_columns.copy(), Cols, User
-        )
-
-        # relation should be set
-        assert "relations" in result_opts
-        assert result_opts["relations"] == ["personal_data"]
-        # select should not contain personal_data because it's a relationship
-        assert "select" not in result_opts
-        # returned selected should not contain personal_data because it's a relationship
-        assert "personal_data" not in result_selected
-
-    @pytest.mark.it(
-        "❌ resolve_selected_columns_and_relations Should add required relationship when not selected"
-    )
-    def test_resolve_selected_columns_add_relationship_when_not_selected(self) -> None:
-        class Cols(BaseModel):
-            personal_data: str
-
-        paging_options = {}
-        selected_columns: list[str] = []  # relationship not selected and not required
-
-        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
-            paging_options, selected_columns.copy(), Cols, User
-        )
-
-        # relation should be set because personal_data is required
-        assert "relations" in result_opts
-        # returned selected stays empty
-        assert result_selected == selected_columns
-
-    @pytest.mark.it(
-        "✅ resolve_selected_columns_and_relations Should map selected non-relationship field and ignore unselected relationship"
-    )
-    def test_resolve_selected_columns_maps_selected_non_relationship_and_ignores_relationship(
-        self,
-    ) -> None:
+    @pytest.mark.it("✅ merge_with_required_columns Should keep selected scalar fields unchanged")
+    def test_merge_with_required_columns_keeps_selected_scalar_fields_unchanged(self) -> None:
         class Cols(BaseModel):
             personal_data: str = None
             name: str = None
 
-        paging_options = {}
-        selected_columns = ["name"]  # non-relationship selected
+        columns = ["name"]  # non-relationship selected
 
-        result_opts, result_selected = PaginationUtils.resolve_selected_columns_and_relations(
-            paging_options, selected_columns.copy(), Cols, User
-        )
+        result_selected = PaginationUtils.merge_with_required_columns(columns.copy(), Cols)
 
-        # relation should not be set because personal_data wasn't selected and is optional
-        assert "relations" not in result_opts
-        # select should contain mapped name attribute
-        assert "select" in result_opts
-        assert any("name" in str(c) for c in result_opts["select"]) is True
         # returned selected list should still contain the original selected (name handled)
-        assert result_selected == selected_columns
+        assert result_selected == columns
 
-    @pytest.mark.it("✅  validate_columns should return True for empty list")
-    def test_validate_columns_empty(self) -> None:
-        assert PaginationUtils.validate_columns([], DummyQuery) is True
+    @pytest.mark.it("✅  is_valid_column_selection should return True for empty list")
+    def test_is_valid_column_selection_empty(self) -> None:
+        assert PaginationUtils.is_valid_column_selection([], DummyQuery) is True
 
-    @pytest.mark.it("✅  validate_columns should return True when all columns are valid")
-    def test_validate_columns_all_valid(self) -> None:
-        assert PaginationUtils.validate_columns(["name", "age"], DummyQuery) is True
+    @pytest.mark.it("✅  is_valid_column_selection should return True when all columns are valid")
+    def test_is_valid_column_selection_all_valid(self) -> None:
+        assert PaginationUtils.is_valid_column_selection(["name", "age"], DummyQuery) is True
 
-    @pytest.mark.it("❌  validate_columns should return False when any column is invalid")
-    def test_validate_columns_invalid(self) -> None:
-        assert PaginationUtils.validate_columns(["name", "nonexistent"], DummyQuery) is False
+    @pytest.mark.it("❌  is_valid_column_selection should return False when any column is invalid")
+    def test_is_valid_column_selection_invalid(self) -> None:
+        assert (
+            PaginationUtils.is_valid_column_selection(["name", "nonexistent"], DummyQuery) is False
+        )
 
     @pytest.mark.it(
         "✅  validate_required_search_filter should return True when all required fields are present"
@@ -601,15 +435,14 @@ class TestPaginationUtils:
         assert PaginationUtils._is_valid_search_params(search, Q) is False
 
     @pytest.mark.it(
-        "❌  _is_valid_search_params should raise BadRequestException for unknown field"
+        "❌  _is_valid_search_params should return False when any field is not in the schema"
     )
-    def test__is_valid_search_params_unknown_field_raises(self) -> None:
+    def test__is_valid_search_params_invalid_field(self) -> None:
         class Q(BaseModel):
             name: str = None
 
         search = [{"field": "nonexistent", "value": "x"}]
-        with pytest.raises(BadRequestException):
-            PaginationUtils._is_valid_search_params(search, Q)
+        assert PaginationUtils._is_valid_search_params(search, Q) is False
 
     @pytest.mark.it(
         "❌  _is_valid_search_params should raise BadRequestException for unconvertible value"
@@ -645,6 +478,26 @@ class TestPaginationUtils:
         search = [{"field": "name", "value": "john"}]
 
         assert PaginationUtils._is_valid_search_params(search, Q) is False
+
+    @pytest.mark.it(
+        "❌  _is_valid_search_params should raise BadRequestException when aggregate_values_by_field raises KeyError"
+    )
+    def test__is_valid_search_params_aggregate_keyerror(self, monkeypatch) -> None:
+        class Q(BaseModel):
+            name: str
+
+        def fake_aggregate(_entries, _query):
+            raise KeyError("name")
+
+        monkeypatch.setattr(
+            PaginationUtils, "aggregate_values_by_field", staticmethod(fake_aggregate)
+        )
+
+        search = [{"field": "name", "value": "john"}]
+        with pytest.raises(BadRequestException) as excinfo:
+            PaginationUtils._is_valid_search_params(search, Q)
+
+        assert "Invalid search filters" in str(excinfo.value)
 
     @pytest.mark.it("✅  _is_valid_sort_params should return True for valid fields and directions")
     def test__is_valid_sort_params_valid(self) -> None:
@@ -791,11 +644,13 @@ class TestPaginationUtils:
         assert result == [{"field": "note", "value": "hello:world"}]
 
     @pytest.mark.it(
-        "❌  _create_pagination_search should raise IndexError for invalid format (no colon)"
+        "❌  _create_pagination_search should raise ValueError for invalid format (no colon)"
     )
     def test__create_pagination_search_invalid_format_raises(self) -> None:
         entries = ["invalid"]
-        with pytest.raises(IndexError):
+        with pytest.raises(
+            ValueError, match=re.escape("not enough values to unpack (expected 2, got 1)")
+        ):
             PaginationUtils._create_pagination_search(entries)
 
     @pytest.mark.it("✅  _create_pagination_sort should build list of field/by mappings")
@@ -817,67 +672,31 @@ class TestPaginationUtils:
         assert result == [{"field": "note", "by": "hello:world"}]
 
     @pytest.mark.it(
-        "❌  _create_pagination_sort should raise IndexError for invalid format (no colon)"
+        "❌  _create_pagination_sort should raise ValueError for invalid format (no colon)"
     )
     def test__create_pagination_sort_invalid_format_raises(self) -> None:
         entries = ["invalid"]
-        with pytest.raises(IndexError):
+        with pytest.raises(
+            ValueError, match=re.escape("not enough values to unpack (expected 2, got 1)")
+        ):
             PaginationUtils._create_pagination_sort(entries)
-
-    @pytest.mark.it("✅  format_skip_take_options Should convert page 1 and size to offset 0")
-    def test_format_skip_take_options_first_page_zero_offset(self) -> None:
-        paging_options = {"skip": 1, "take": 10}
-        result = PaginationUtils.format_skip_take_options(paging_options)
-        assert result["skip"] == 0
-        assert result["take"] == 10
-
-    @pytest.mark.it(
-        "✅  format_skip_take_options Should compute offset = (page-1)*size for page > 1"
-    )
-    def test_format_skip_take_options_page_two(self) -> None:
-        paging_options = {"skip": 2, "take": 10}
-        result = PaginationUtils.format_skip_take_options(paging_options)
-        assert result["skip"] == 10
-        assert result["take"] == 10
-
-    @pytest.mark.it("✅  format_skip_take_options Should handle values wrapped with .default")
-    def test_format_skip_take_options_handles_default_wrapped_values(self) -> None:
-        class V:
-            def __init__(self, default: int) -> None:
-                self.default = default
-
-        paging_options = {"skip": V(3), "take": V(5)}
-        result = PaginationUtils.format_skip_take_options(paging_options)
-        assert result["skip"] == (3 - 1) * 5
-        assert result["take"] == 5
-
-    @pytest.mark.it("✅  format_skip_take_options Should accept numeric strings and cast to int")
-    def test_format_skip_take_options_accepts_string_numbers(self) -> None:
-        paging_options = {"skip": "4", "take": "3"}
-        result = PaginationUtils.format_skip_take_options(paging_options)
-        assert result["skip"] == (4 - 1) * 3
-        assert result["take"] == 3
 
     @pytest.mark.it("✅  select_columns should map existing entity attributes into select")
     def test_select_columns_success_maps_attributes(self) -> None:
-        paging_options: dict = {}
-        selected_columns = ["name", "age"]
+        columns = ["name", "age"]
 
-        PaginationUtils.select_columns(selected_columns, DummyQuery, User, paging_options)
+        result = PaginationUtils.select_columns(columns, DummyQuery)
 
-        assert "select" in paging_options
-        assert len(paging_options["select"]) == 2
-        select_str = ",".join(map(str, paging_options["select"]))
-        assert "name" in select_str
-        assert "age" in select_str
+        assert len(result) == 2
+        assert "name" in result
+        assert "age" in result
 
     @pytest.mark.it("❌  select_columns should raise BadRequestException for any invalid column")
     def test_select_columns_invalid_raises(self) -> None:
-        paging_options: dict = {}
         selected_columns = ["unknown"]
 
         with pytest.raises(BadRequestException) as excinfo:
-            PaginationUtils.select_columns(selected_columns, DummyQuery, User, paging_options)
+            PaginationUtils.select_columns(selected_columns, DummyQuery)
 
         assert "Invalid columns" in str(excinfo.value)
 
@@ -888,38 +707,18 @@ class TestPaginationUtils:
         class RequiredCols(BaseModel):
             name: str  # required
 
-        paging_options: dict = {}
         selected_columns: list[str] = []
 
-        PaginationUtils.select_columns(selected_columns, RequiredCols, User, paging_options)
+        result = PaginationUtils.select_columns(selected_columns, RequiredCols)
 
-        assert "select" in paging_options
-        select_str = ",".join(map(str, paging_options["select"]))
-        assert "name" in select_str
+        assert "name" in result
 
     @pytest.mark.it("✅  select_columns should deduplicate selected columns")
     def test_select_columns_deduplicates(self) -> None:
-        paging_options: dict = {}
         selected_columns = ["name", "name", "age", "age"]
 
-        PaginationUtils.select_columns(selected_columns, DummyQuery, User, paging_options)
+        result = PaginationUtils.select_columns(selected_columns, DummyQuery)
 
-        assert "select" in paging_options
-        assert len(paging_options["select"]) == 2
-        select_str = ",".join(map(str, paging_options["select"]))
-        assert "name" in select_str
-        assert "age" in select_str
-
-    @pytest.mark.it("✅  select_columns should set relations when a relationship field is selected")
-    def test_select_columns_sets_relations_when_relationship_selected(self) -> None:
-        class Cols(BaseModel):
-            personal_data: str | None = None
-
-        paging_options: dict = {}
-        selected_columns = ["personal_data"]
-
-        PaginationUtils.select_columns(selected_columns, Cols, User, paging_options)
-
-        assert "relations" in paging_options
-        assert paging_options["relations"] == ["personal_data"]
-        assert "select" not in paging_options
+        assert len(result) == 2
+        assert "name" in result
+        assert "age" in result

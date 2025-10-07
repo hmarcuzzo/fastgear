@@ -25,15 +25,16 @@ class TestPaginationTypes:
     @pytest.mark.it("✅  Should create valid Pagination with all fields")
     def test_valid_pagination(self, valid_pagination: dict) -> None:
         pagination = Pagination(**valid_pagination)
-        assert pagination["skip"] == valid_pagination["skip"]
-        assert pagination["take"] == valid_pagination["take"]
-        assert len(pagination["sort"]) == len(valid_pagination["sort"])
-        assert len(pagination["search"]) == len(valid_pagination["search"])
+        assert pagination.skip == (valid_pagination["skip"] - 1) * valid_pagination["take"]
+        assert pagination.take == valid_pagination["take"]
+        assert len(pagination.sort) == len(valid_pagination["sort"])
+        assert len(pagination.search) == len(valid_pagination["search"])
 
     @pytest.mark.it("✅  Should create valid Pagination with empty lists")
     def test_valid_pagination_empty_lists(self) -> None:
-        pagination = Pagination(skip=0, take=10, sort=[], search=[])
-        assert pagination["skip"] == 0  # noqa: PLR2004
-        assert pagination["take"] == 10  # noqa: PLR2004
-        assert pagination["sort"] == []
-        assert pagination["search"] == []
+        pagination = Pagination(skip=1, take=10, sort=[], search=[], columns=None)
+        assert pagination.skip == 0  # noqa: PLR2004
+        assert pagination.take == 10  # noqa: PLR2004
+        assert pagination.sort == []
+        assert pagination.search == []
+        assert pagination.columns is None

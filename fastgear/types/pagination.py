@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from typing_extensions import TypedDict
 
 
@@ -11,8 +13,15 @@ class PaginationSort(TypedDict):
     by: str
 
 
-class Pagination(TypedDict):
+@dataclass(slots=True, frozen=True)
+class Pagination:
     skip: int
     take: int
     sort: list[PaginationSort]
-    search: list[PaginationSearch]
+    search: list[PaginationSearch | list[PaginationSearch]]
+    columns: list[str] | None
+
+    def __post_init__(self):
+        # Convert page number to zero-based index for skip
+        new_skip = (self.skip - 1) * self.take
+        object.__setattr__(self, "skip", new_skip)

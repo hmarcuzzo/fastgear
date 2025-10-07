@@ -1,9 +1,11 @@
-from sqlalchemy import Select, inspect, select
+from sqlalchemy import BinaryExpression, Select, String, asc, desc, inspect, or_, select
 from sqlalchemy.orm import load_only, selectinload
+from sqlalchemy_utils import cast_if
 
 from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.find_one_options import FindOneOptions
 from fastgear.types.generic_types_var import EntityType
+from fastgear.types.pagination import Pagination, PaginationSearch
 
 
 class SelectConstructor:
@@ -11,13 +13,15 @@ class SelectConstructor:
         self.entity = entity
 
     def build_select_statement(
-        self, criteria: str | FindOneOptions | FindManyOptions = None, new_entity: EntityType = None,
+        self,
+        criteria: str | FindOneOptions | FindManyOptions | Pagination = None,
+        new_entity: EntityType = None,
     ) -> Select:
         """Constructs and returns a SQLAlchemy Select statement based on the provided criteria and entity.
 
         Args:
-            criteria (str | FindOneOptions | FindManyOptions, optional): The filter criteria to build the select
-                statement. It can be a string, an instance of FindOneOptions, or an instance of FindManyOptions.
+            criteria (str | FindOneOptions | FindManyOptions, Pagination, optional): The filter criteria to build the select
+                statement. It can be a string, an instance of FindOneOptions, an instance of FindManyOptions or Pagination.
                 Defaults to None.
             new_entity (EntityType, optional): A new entity type to use for the select statement.
                 If not provided, the existing entity type will be used. Defaults to None.
@@ -62,7 +66,7 @@ class SelectConstructor:
             match key:
                 case "select":
                     select_statement = select_statement.options(
-                        load_only(*options_dict[key], raiseload=True),
+                        load_only(*options_dict[key], raiseload=True)
                     )
                 case "where":
                     select_statement = select_statement.where(*options_dict[key])
@@ -74,7 +78,7 @@ class SelectConstructor:
                     select_statement = select_statement.limit(options_dict[key])
                 case "relations":
                     select_statement = select_statement.options(
-                        *[selectinload(getattr(entity, relation)) for relation in options_dict[key]],
+                        *[selectinload(getattr(entity, relation)) for relation in options_dict[key]]
                     )
                 case _:
                     raise KeyError(f"Unknown option: {key} in FindOptions")
@@ -135,3 +139,39 @@ class SelectConstructor:
 
         """
         return {"where": [inspect(entity).primary_key[0] == criteria]}
+
+    def build_options(self, pagination: Pagination) -> FindOneOptions | FindManyOptions:
+        find_options = {"skip": pagination.skip, "take": pagination.take}
+
+        def _make_clause(item: PaginationSearch) -> BinaryExpression:
+            field = getattr(self.entity, item.get("field"), item.get("field"))
+            value = item.get("value")
+            return cast_if(field, String).ilike(f"%{value}%")
+
+        search = getattr(pagination, "search", [])
+        where = find_options.setdefault("where", [])
+        for param in search:
+            items = param if isinstance(param, list) else [param]
+            clauses = [_make_clause(it) for it in items]
+
+            if not clauses:
+                continue
+
+            where.append(or_(*clauses) if len(clauses) > 1 else clauses[0])
+
+        sort = getattr(pagination, "sort", [])
+        order_by = find_options.setdefault("order_by", [])
+        for param in sort:
+            field = getattr(self.entity, param.get("field"), param.get("field"))
+            order_by.append(asc(field) if param.get("by") == "ASC" else desc(field))
+
+        entity_relationships = inspect(self.entity).relationships
+        relations = find_options.setdefault("relations", [])
+        select_options = find_options.setdefault("select", [])
+        for field in getattr(pagination, "columns", []):
+            if field in entity_relationships:
+                relations.append(field)
+            else:
+                select_options.append(getattr(self.entity, field, field))
+
+        return find_options

@@ -215,3 +215,19 @@ class AbstractRepository(ABC, Generic[EntityType]):
         Returns:
             DeleteResult: The result of the delete operation.
         """
+
+    @abstractmethod
+    def soft_delete(
+        self, delete_statement: str | FindOneOptions | Any, db: SessionType = None
+    ) -> DeleteResult:
+        """Abstract method to soft-delete records. Implementation can be sync or async.
+
+        Args:
+            delete_statement (str | FindOneOptions | Any): The statement or filter criteria to
+                soft-delete the records. It can be a string, an instance of FindOneOptions, or any
+                other type.
+            db (SessionType): The database session.
+
+        Returns:
+            DeleteResult: The result of the soft delete operation.
+        """

@@ -340,3 +340,26 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
 
         self.commit_or_flush(db)
         return DeleteResult(raw=raw, affected=len(raw))
+
+    def soft_delete(
+        self, delete_statement: str | FindOneOptions, db: SyncSessionType = None
+    ) -> UpdateResult:
+        try:
+            with db.begin_nested():
+                parent_entity_id = (
+                    delete_statement
+                    if isinstance(delete_statement, str)
+                    else (self.find_one_or_fail(delete_statement, db)).id
+                )
+
+                response = self.repo_utils.soft_delete_cascade_from_parent(
+                    self.entity,
+                    parent_entity_id=parent_entity_id,
+                    db=db,
+                )
+
+            self.commit_or_flush(db)
+            return response
+
+        except Exception as e:
+            raise e

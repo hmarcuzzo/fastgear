@@ -62,24 +62,24 @@ class SelectConstructor:
 
         options_dict = self.__fix_options_dict(options_dict)
 
-        for key in options_dict:
+        for key, item in options_dict.items():
             match key:
                 case "select":
-                    select_statement = select_statement.options(
-                        load_only(*options_dict[key], raiseload=True)
-                    )
+                    select_statement = select_statement.options(load_only(*item, raiseload=True))
                 case "where":
-                    select_statement = select_statement.where(*options_dict[key])
+                    select_statement = select_statement.where(*item)
                 case "order_by":
-                    select_statement = select_statement.order_by(*options_dict[key])
+                    select_statement = select_statement.order_by(*item)
                 case "skip":
-                    select_statement = select_statement.offset(options_dict[key])
+                    select_statement = select_statement.offset(item)
                 case "take":
-                    select_statement = select_statement.limit(options_dict[key])
+                    select_statement = select_statement.limit(item)
                 case "relations":
                     select_statement = select_statement.options(
-                        *[selectinload(getattr(entity, relation)) for relation in options_dict[key]]
+                        *[selectinload(getattr(entity, relation)) for relation in item]
                     )
+                case "with_deleted":
+                    select_statement = select_statement.execution_options(with_deleted=item)
                 case _:
                     raise KeyError(f"Unknown option: {key} in FindOptions")
 
@@ -141,7 +141,14 @@ class SelectConstructor:
         return {"where": [inspect(entity).primary_key[0] == criteria]}
 
     def build_options(self, pagination: Pagination) -> FindOneOptions | FindManyOptions:
-        find_options = {"skip": pagination.skip, "take": pagination.take}
+        find_options = {
+            "skip": pagination.skip,
+            "take": pagination.take,
+            "where": [],
+            "order_by": [],
+            "select": [],
+            "relations": [],
+        }
 
         def _make_clause(item: PaginationSearch) -> BinaryExpression:
             field = getattr(self.entity, item.get("field"), item.get("field"))
@@ -149,7 +156,7 @@ class SelectConstructor:
             return cast_if(field, String).ilike(f"%{value}%")
 
         search = getattr(pagination, "search", [])
-        where = find_options.setdefault("where", [])
+        where = find_options.get("where", [])
         for param in search:
             items = param if isinstance(param, list) else [param]
             clauses = [_make_clause(it) for it in items]
@@ -160,14 +167,14 @@ class SelectConstructor:
             where.append(or_(*clauses) if len(clauses) > 1 else clauses[0])
 
         sort = getattr(pagination, "sort", [])
-        order_by = find_options.setdefault("order_by", [])
+        order_by = find_options.get("order_by", [])
         for param in sort:
             field = getattr(self.entity, param.get("field"), param.get("field"))
             order_by.append(asc(field) if param.get("by") == "ASC" else desc(field))
 
         entity_relationships = inspect(self.entity).relationships
-        relations = find_options.setdefault("relations", [])
-        select_options = find_options.setdefault("select", [])
+        relations = find_options.get("relations", [])
+        select_options = find_options.get("select", [])
         for field in getattr(pagination, "columns", []):
             if field in entity_relationships:
                 relations.append(field)

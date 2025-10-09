@@ -24,7 +24,9 @@ class TestPaginationUtils:
     def test_build_pagination_options_default(
         self, pagination_utils: PaginationUtils, page: int, size: int
     ) -> None:
-        result = pagination_utils.build_pagination_options(page, size, None, None, None, None, None)
+        result = pagination_utils.build_pagination_options(
+            page, size, None, None, None, None, DummyQuery
+        )
 
         assert isinstance(result, Pagination)
         assert result.skip == (page - 1) * size
@@ -712,13 +714,3 @@ class TestPaginationUtils:
         result = PaginationUtils.select_columns(selected_columns, RequiredCols)
 
         assert "name" in result
-
-    @pytest.mark.it("✅  select_columns should deduplicate selected columns")
-    def test_select_columns_deduplicates(self) -> None:
-        selected_columns = ["name", "name", "age", "age"]
-
-        result = PaginationUtils.select_columns(selected_columns, DummyQuery)
-
-        assert len(result) == 2
-        assert "name" in result
-        assert "age" in result

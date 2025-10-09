@@ -10,3 +10,4 @@ class FindOneOptions(TypedDict, total=False):
     order_by: Any
     relations: Any
     having: list[Any]
+    with_deleted: bool

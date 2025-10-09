@@ -3,7 +3,11 @@ from collections.abc import Sequence
 from functools import singledispatchmethod
 
 from pydantic import BaseModel
-from sqlalchemy import Select, func, select
+from sqlalchemy import (
+    Select,
+    func,
+    select,
+)
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.dml import Delete, ReturningDelete
 
@@ -348,3 +352,28 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
 
         await self.commit_or_flush(db)
         return DeleteResult(raw=raw, affected=len(raw))
+
+    async def soft_delete(
+        self, delete_statement: str | FindOneOptions, db: AsyncSessionType = None
+    ) -> UpdateResult:
+        try:
+            async with db.begin_nested():
+                parent_entity_id = (
+                    delete_statement
+                    if isinstance(delete_statement, str)
+                    else (await self.find_one_or_fail(delete_statement, db)).id
+                )
+
+                response = await db.run_sync(
+                    lambda sync_db: self.repo_utils.soft_delete_cascade_from_parent(
+                        self.entity,
+                        parent_entity_id=parent_entity_id,
+                        db=sync_db,
+                    )
+                )
+
+            await self.commit_or_flush(db)
+            return response
+
+        except Exception as e:
+            raise e

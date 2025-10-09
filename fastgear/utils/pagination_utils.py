@@ -56,7 +56,7 @@ class PaginationUtils:
             BadRequestException: If sort or search filters are invalid given the
             provided query schemas.
         """
-        paging_options = {"skip": page, "take": size, "sort": [], "search": [], "columns": None}
+        paging_options = {"skip": page, "take": size, "sort": [], "search": [], "columns": []}
 
         if sort:
             sort = list(set(sort))
@@ -79,15 +79,13 @@ class PaginationUtils:
                 ]
             )
 
-        if columns:
-            paging_options["columns"] = self.select_columns(columns, columns_query)
+        columns = list(set(columns)) if columns else []
+        paging_options["columns"] = self.select_columns(columns, columns_query)
 
         return Pagination(**paging_options)
 
     @staticmethod
     def select_columns(columns: list[str], columns_query: ColumnsQueryType) -> list[str]:
-        columns = list(set(columns))
-
         if PaginationUtils.is_valid_column_selection(columns, columns_query):
             return PaginationUtils.merge_with_required_columns(columns, columns_query)
 

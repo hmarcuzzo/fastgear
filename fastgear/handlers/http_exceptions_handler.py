@@ -45,6 +45,7 @@ class HttpExceptionsHandler:
             """
             return Response(
                 status_code=exc.status_code,
+                headers={"content-type": "application/json"},
                 content=json.dumps(
                     self.global_exception_error_message(
                         status_code=exc.status_code,
@@ -73,6 +74,7 @@ class HttpExceptionsHandler:
             """
             return Response(
                 status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                headers={"content-type": "application/json"},
                 content=json.dumps(
                     self.global_exception_error_message(
                         status_code=HTTP_422_UNPROCESSABLE_ENTITY,
@@ -111,6 +113,7 @@ class HttpExceptionsHandler:
 
             return Response(
                 status_code=exc.status_code,
+                headers={"content-type": "application/json"},
                 content=json.dumps(
                     self.global_exception_error_message(
                         status_code=exc.status_code,

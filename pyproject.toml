@@ -16,6 +16,7 @@ dependencies = [
     "pydantic-settings>=2.10.0",
     "sqlalchemy>=2.0.41",
     "sqlalchemy-utils>=0.41.2",
+    "typing-inspect>=0.9.0",
     "uuid6>=2025.0.0",
 ]
 

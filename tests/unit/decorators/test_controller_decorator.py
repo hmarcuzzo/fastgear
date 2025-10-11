@@ -89,7 +89,7 @@ class TestControllerDecorator:
                 return 1
 
             @router.get("/{any_path}")
-            def get_any_path(self) -> int:  # Alphabetically before `get_test`
+            def get_any_path(self, any_path) -> int:  # Alphabetically before `get_test`
                 return 2
 
         client = TestClient(router)

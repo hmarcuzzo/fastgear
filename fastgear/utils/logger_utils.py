@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-if TYPE_CHECKING:
-    from loguru import Record
+if TYPE_CHECKING:  # pragma: no cover, no branch
+    from loguru import Record  # pragma: no cover
 
 
 class LoggerUtils:

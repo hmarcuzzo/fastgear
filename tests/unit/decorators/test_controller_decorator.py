@@ -2,10 +2,16 @@ from typing import Any, ClassVar
 
 import pytest
 from fastapi import APIRouter, Depends, Request
-from starlette.status import HTTP_200_OK
+from starlette.status import HTTP_200_OK, HTTP_201_CREATED
 from starlette.testclient import TestClient
 
 from fastgear.decorators import controller
+from fastgear.decorators.controller_decorator import (
+    INCLUDE_INIT_PARAMS_KEY,
+    RETURN_TYPES_FUNC_KEY,
+    _controller,
+    _remove_router_tags,
+)
 
 
 @pytest.mark.describe("🧪  ControllerDecorator")
@@ -94,7 +100,7 @@ class TestControllerDecorator:
 
         client = TestClient(router)
         assert client.get("/test").json() == 1
-        assert client.get("/any_other_path").json() == 2  # noqa: PLR2004
+        assert client.get("/any_other_path").json() == 2
 
     @pytest.mark.it("✅  Should handle multiple paths for a single method")
     def test_multiple_paths(self, router: APIRouter) -> None:
@@ -121,7 +127,7 @@ class TestControllerDecorator:
 
         client = TestClient(router)
         assert client.get("/route").json() == 0
-        assert client.get("/route?param=3").json() == 3  # noqa: PLR2004
+        assert client.get("/route?param=3").json() == 3
 
     @pytest.mark.it("✅  Should apply prefix correctly")
     def test_prefix(self) -> None:
@@ -167,3 +173,201 @@ class TestControllerDecorator:
                 return "hello"
 
         assert router.routes[0].tags == ["test"]
+
+    @pytest.mark.it("✅  Should include init params when INCLUDE_INIT_PARAMS_KEY is set")
+    def test_include_init_params_with_instance(self, router: APIRouter) -> None:
+        class Controller:
+            def __init__(self, value: int = 5):
+                self.value = value
+
+            @router.get("/value")
+            def get_value(self) -> int:
+                return self.value
+
+        setattr(Controller, INCLUDE_INIT_PARAMS_KEY, True)
+        instance = Controller(value=10)
+        _controller(router, Controller, instance=instance)
+
+        client = TestClient(router)
+        response = client.get("/value")
+        assert response.status_code == HTTP_200_OK
+        assert response.json() == 5  # Should use init params, not instance value
+
+    @pytest.mark.it("✅  Should use provided instance when INCLUDE_INIT_PARAMS_KEY is not set")
+    def test_use_instance_without_include_init_params(self, router: APIRouter) -> None:
+        class Controller:
+            def __init__(self, value: int = 5):
+                self.value = value
+
+            @router.get("/value")
+            def get_value(self) -> int:
+                return self.value
+
+        instance = Controller(value=10)
+        _controller(router, Controller, instance=instance)
+
+        client = TestClient(router)
+        response = client.get("/value")
+        assert response.status_code == HTTP_200_OK
+        assert response.json() == 10  # Should use instance value, not default
+
+    @pytest.mark.it("✅  Should register multiple URLs for controller methods")
+    def test_multiple_urls_registration(self, router: APIRouter) -> None:
+        @controller(router, "/users", "/admin/users")
+        class Controller:
+            def get(self) -> str:
+                return "get_response"
+
+            def post(self) -> str:
+                return "post_response"
+
+        client = TestClient(router)
+
+        # Test first URL
+        assert client.get("/users").json() == "get_response"
+        assert client.post("/users").json() == "post_response"
+
+        # Test second URL
+        assert client.get("/admin/users").json() == "get_response"
+        assert client.post("/admin/users").json() == "post_response"
+
+    @pytest.mark.it("✅  Should use custom return types when RETURN_TYPES_FUNC_KEY is set")
+    def test_custom_return_types_func(self, router: APIRouter) -> None:
+        def custom_return_types() -> tuple[
+            type[dict[str, Any]], int, dict[str, Any], dict[str, Any]
+        ]:
+            return (
+                dict[str, Any],
+                201,
+                {
+                    "201": {
+                        "description": "Custom response",
+                        "content": {"application/json": {"example": {"id": 1, "name": "test"}}},
+                    }
+                },
+                {"tags": ["custom"]},
+            )
+
+        class Controller:
+            def get(self) -> dict[str, Any]:
+                return {"id": 1, "name": "item1"}
+
+        setattr(Controller.get, RETURN_TYPES_FUNC_KEY, custom_return_types)
+        controller(router, "/items")(Controller)
+
+        client = TestClient(router)
+        response = client.get("/items")
+        assert response.status_code == HTTP_201_CREATED
+        assert response.json() == {"id": 1, "name": "item1"}
+
+    @pytest.mark.it("✅  Should raise ValueError when route is not APIRoute")
+    def test_non_api_route_raises_error(self, router: APIRouter) -> None:
+        from starlette.routing import Mount
+
+        @controller(router)
+        class Controller:
+            def get(self) -> str:
+                return "test"
+
+        mount = Mount("/mount", routes=[])
+        router.routes.append(mount)
+
+        with pytest.raises(ValueError, match="The provided routes should be of type APIRoute"):
+
+            @controller(router)
+            class AnotherController:
+                def post(self) -> str:
+                    return "test2"
+
+    @pytest.mark.it("✅  Should raise Exception when duplicate route roles exist")
+    def test_duplicate_route_roles_raises_error(self, router: APIRouter) -> None:
+        @controller(router, "/items")
+        class Controller:
+            def get(self) -> str:
+                return "first"
+
+        with pytest.raises(
+            Exception, match="An identical route role has been implemented more then once"
+        ):
+
+            @controller(router, "/items")
+            class AnotherController:
+                def get(self) -> str:
+                    return "duplicate"
+
+    @pytest.mark.it("✅  Should not change route name when already prefixed with class name")
+    def test_route_name_already_prefixed_not_changed(self, router: APIRouter) -> None:
+        @controller(router)
+        class Controller:
+            @router.get("/prefixed", name="Controller.get")
+            def get(self) -> str:
+                return "ok"
+
+        client = TestClient(router)
+        resp = client.get("/prefixed")
+        assert resp.status_code == HTTP_200_OK
+
+        # Find the route and assert the name is unchanged
+        matching = [
+            r for r in router.routes if hasattr(r, "name") and getattr(r, "path", "") == "/prefixed"
+        ]
+        assert len(matching) == 1
+        assert matching[0].name == "Controller.get"
+
+    @pytest.mark.it("✅  Should skip tag removal when route has no 'tags' attribute")
+    def test_remove_router_tags_condition_false(self) -> None:
+        router = APIRouter(tags=["api"])  # router has tags
+
+        class DummyRoute:
+            def __init__(self) -> None:
+                self.path = "/dummy"
+
+        route = DummyRoute()
+
+        # Call helper directly: condition should be False (no 'tags' on route)
+        _remove_router_tags(route, router)
+
+        # Route still has no 'tags'; most importantly, no exception was raised
+        assert not hasattr(route, "tags")
+
+    @pytest.mark.it("✅  Should use pydantic.v1 import path when PYDANTIC_VERSION major != '2'")
+    def test_pydantic_version_not_2_import_path(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import importlib
+        import sys
+        import types
+        from typing import ClassVar as _ClassVar
+        from typing import get_origin as _get_origin
+
+        import pydantic as _pyd
+
+        # Save current module and version
+        import fastgear.decorators.controller_decorator as cd
+
+        original_version = getattr(_pyd, "VERSION", "2")
+
+        # Prepare fake pydantic.typing with a compatible is_classvar
+        fake_typing = types.ModuleType("pydantic.typing")
+
+        def fake_is_classvar(hint: Any) -> bool:
+            return _get_origin(hint) is _ClassVar
+
+        fake_typing.is_classvar = fake_is_classvar  # type: ignore[attr-defined]
+
+        # Patch environment to simulate pydantic v1
+        monkeypatch.setattr(_pyd, "VERSION", "1.10.13", raising=False)
+        monkeypatch.setitem(sys.modules, "pydantic.typing", fake_typing)
+
+        # Reload module to execute import branch for v1
+        cd = importlib.reload(cd)
+
+        # Assert that is_classvar was imported from our injected module and behaves correctly
+        injected = sys.modules["pydantic.typing"]
+        assert cd.is_classvar is getattr(injected, "is_classvar")
+        assert cd.is_classvar(_ClassVar[int]) is True
+        assert cd.is_classvar(int) is False
+
+        # Restore original state and reload back
+        monkeypatch.setattr(_pyd, "VERSION", original_version, raising=False)
+        # Remove our fake module if it shouldn't exist
+        monkeypatch.delitem(sys.modules, "pydantic.typing", raising=False)
+        importlib.reload(cd)

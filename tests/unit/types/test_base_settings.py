@@ -2,7 +2,7 @@ import pytest
 from pydantic_settings import PydanticBaseSettingsSource, TomlConfigSettingsSource
 
 from fastgear.types.base_settings import TomlBaseSettings
-from tests.fixtures.types.base_settings_fixtures import settings_sources  # noqa: F401
+from tests.fixtures.types.base_settings_fixtures import settings_sources
 
 
 @pytest.mark.describe("🧪  TomlBaseSettings")
@@ -19,7 +19,7 @@ class TestTomlBaseSettings:
             settings_sources["file_secret_settings"],
         )
 
-        assert len(sources) == 2  # noqa: PLR2004
+        assert len(sources) == 2
         assert sources[0] == settings_sources["env_settings"]
         assert isinstance(sources[1], TomlConfigSettingsSource)
         assert sources[1].settings_cls == TomlBaseSettings

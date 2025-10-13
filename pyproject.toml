@@ -100,6 +100,13 @@ ignore = [
     "TRY"
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**.py" = [
+    "F401",
+    "PLR2004",
+    "PT006"
+]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

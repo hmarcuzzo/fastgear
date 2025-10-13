@@ -3,7 +3,7 @@ from fastapi_pagination.links.bases import Links
 from pydantic import BaseModel
 
 from fastgear.types.custom_pages import Page, custom_page_query, custom_size_query
-from tests.fixtures.types.custom_pages_fixtures import (  # noqa: F401
+from tests.fixtures.types.custom_pages_fixtures import (
     ItemFixture,
     test_items,
     valid_links,
@@ -33,7 +33,7 @@ class TestCustomPages:
             size: int = custom_size_query
 
         model = TestModel()
-        assert model.size == 10  # noqa: PLR2004
+        assert model.size == 10
 
         with pytest.raises(ValueError, match="Input should be greater than or equal to 1"):
             TestModel(size=0)
@@ -44,7 +44,7 @@ class TestCustomPages:
         model = TestModel(size=1)
         assert model.size == 1
         model = TestModel(size=100)
-        assert model.size == 100  # noqa: PLR2004
+        assert model.size == 100
 
     @pytest.mark.it("✅  Should create a page with correct parameters")
     def test_page_creation(

@@ -1,7 +1,7 @@
 import pytest
 
 from fastgear.types.custom_base_exception import CustomBaseException
-from tests.fixtures.types.custom_base_exception_fixtures import (  # noqa: F401
+from tests.fixtures.types.custom_base_exception_fixtures import (
     basic_exception_data,
     empty_message_data,
     full_exception_data,

@@ -8,7 +8,7 @@ from starlette.status import HTTP_200_OK
 from fastgear.common.database.sqlalchemy.session import db_session
 from fastgear.middlewares import DBSessionMiddleware
 from tests.fixtures.api import app
-from tests.fixtures.middlewares.db_session_middleware_fixtures import (  # noqa: F401
+from tests.fixtures.middlewares.db_session_middleware_fixtures import (
     mock_async_session_factory,
     mock_call_next,
     mock_request,

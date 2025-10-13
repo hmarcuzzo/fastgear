@@ -1,4 +1,3 @@
-# ruff: noqa: PLR2004
 import re
 
 import pytest
@@ -7,7 +6,7 @@ from pydantic import BaseModel
 from fastgear.types.http_exceptions import BadRequestException
 from fastgear.types.pagination import Pagination
 from fastgear.utils import PaginationUtils
-from tests.fixtures.utils.pagination_utils_fixtures import (  # noqa: F401
+from tests.fixtures.utils.pagination_utils_fixtures import (
     DummyOrderByQuery,
     DummyQuery,
     User,

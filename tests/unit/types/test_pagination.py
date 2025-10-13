@@ -1,7 +1,7 @@
 import pytest
 
 from fastgear.types.pagination import Pagination, PaginationSearch, PaginationSort
-from tests.fixtures.types.pagination_fixtures import (  # noqa: F401
+from tests.fixtures.types.pagination_fixtures import (
     valid_pagination,
     valid_search,
     valid_sort,
@@ -33,8 +33,8 @@ class TestPaginationTypes:
     @pytest.mark.it("✅  Should create valid Pagination with empty lists")
     def test_valid_pagination_empty_lists(self) -> None:
         pagination = Pagination(skip=1, take=10, sort=[], search=[], columns=None)
-        assert pagination.skip == 0  # noqa: PLR2004
-        assert pagination.take == 10  # noqa: PLR2004
+        assert pagination.skip == 0
+        assert pagination.take == 10
         assert pagination.sort == []
         assert pagination.search == []
         assert pagination.columns is None

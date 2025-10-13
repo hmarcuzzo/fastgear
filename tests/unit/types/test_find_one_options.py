@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import BinaryExpression, Column
 
 from fastgear.types.find_one_options import FindOneOptions
-from tests.fixtures.types.find_one_options_fixtures import base_options, test_columns  # noqa: F401
+from tests.fixtures.types.find_one_options_fixtures import base_options, test_columns
 
 
 @pytest.mark.describe("🧪  FindOneOptions")
@@ -43,7 +43,7 @@ class TestFindOneOptions:
 
     @pytest.mark.it("✅  Should create FindOneOptions with different field combinations")
     @pytest.mark.parametrize(
-        "field_name, field_value, expected_value",  # noqa: PT006
+        "field_name, field_value, expected_value",
         [
             ("select", ["id", "name", "email"], ["id", "name", "email"]),
             ("relations", ["user", "profile", "address"], ["user", "profile", "address"]),

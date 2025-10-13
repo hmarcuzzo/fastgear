@@ -5,7 +5,7 @@ import pytest
 from loguru import logger
 
 from fastgear.utils.logger_utils import LoggerUtils
-from tests.fixtures.utils.logger_fixtures import (  # noqa: F401
+from tests.fixtures.utils.logger_fixtures import (
     log_levels,
     mock_record,
     mock_record_without_name,

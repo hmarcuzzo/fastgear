@@ -18,7 +18,7 @@ from fastgear.types.http_exceptions import (
     UnauthorizedException,
     UnprocessableEntityException,
 )
-from tests.fixtures.types.http_exceptions_fixtures import (  # noqa: F401
+from tests.fixtures.types.http_exceptions_fixtures import (
     basic_exception_data,
     empty_message_data,
     full_exception_data,
@@ -29,7 +29,7 @@ from tests.fixtures.types.http_exceptions_fixtures import (  # noqa: F401
 class TestHTTPExceptions:
     @pytest.mark.it("✅  Should create exceptions with correct status codes and types")
     @pytest.mark.parametrize(
-        "exception_class, status_code, default_type",  # noqa: PT006
+        "exception_class, status_code, default_type",
         [
             (BadRequestException, HTTP_400_BAD_REQUEST, "Bad Request"),
             (UnauthorizedException, HTTP_401_UNAUTHORIZED, "unauthorized"),
@@ -51,7 +51,7 @@ class TestHTTPExceptions:
 
     @pytest.mark.it("✅  Should handle exceptions with full data")
     @pytest.mark.parametrize(
-        "exception_class",  # noqa: PT006
+        "exception_class",
         [
             BadRequestException,
             UnauthorizedException,
@@ -72,7 +72,7 @@ class TestHTTPExceptions:
 
     @pytest.mark.it("✅  Should handle exceptions with empty message")
     @pytest.mark.parametrize(
-        "exception_class, default_type",  # noqa: PT006
+        "exception_class, default_type",
         [
             (BadRequestException, "Bad Request"),
             (UnauthorizedException, "unauthorized"),
@@ -93,7 +93,7 @@ class TestHTTPExceptions:
 
     @pytest.mark.it("✅  Should verify CustomHTTPExceptionType union type")
     @pytest.mark.parametrize(
-        "exception_class",  # noqa: PT006
+        "exception_class",
         [
             BadRequestException,
             UnauthorizedException,

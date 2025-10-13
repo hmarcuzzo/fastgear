@@ -1,7 +1,7 @@
 import pytest
 
 from fastgear.types.generic_types_var import ColumnsQueryType, EntityType
-from tests.fixtures.types.generic_types_var_fixtures import (  # noqa: F401
+from tests.fixtures.types.generic_types_var_fixtures import (
     EntityFixture,
     ModelFixture,
 )

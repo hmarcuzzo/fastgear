@@ -1,7 +1,7 @@
 import pytest
 
 from fastgear.types.update_result import UpdateResult
-from tests.fixtures.types.update_result_fixtures import (  # noqa: F401
+from tests.fixtures.types.update_result_fixtures import (
     basic_update_result,
     empty_update_result,
     full_update_result,

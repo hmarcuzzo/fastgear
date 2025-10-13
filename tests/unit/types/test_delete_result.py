@@ -13,7 +13,7 @@ class TestDeleteResult:
 
         assert isinstance(result, dict)
         assert result["raw"] == {"id": 1}
-        assert result["affected"] == 1  # noqa: PLR2004
+        assert result["affected"] == 1
 
     @pytest.mark.it("✅  Should create DeleteResult with zero affected rows")
     def test_create_delete_result_zero_affected(self) -> None:
@@ -21,7 +21,7 @@ class TestDeleteResult:
 
         assert isinstance(result, dict)
         assert result["raw"] == {}
-        assert result["affected"] == 0  # noqa: PLR2004
+        assert result["affected"] == 0
 
     @pytest.mark.it("✅  Should create DeleteResult with multiple affected rows")
     def test_create_delete_result_multiple_affected(self) -> None:
@@ -29,7 +29,7 @@ class TestDeleteResult:
 
         assert isinstance(result, dict)
         assert result["raw"] == {"ids": [1, 2, 3]}
-        assert result["affected"] == 3  # noqa: PLR2004
+        assert result["affected"] == 3
 
     @pytest.mark.it("✅  Should allow any type for raw field")
     @pytest.mark.parametrize(

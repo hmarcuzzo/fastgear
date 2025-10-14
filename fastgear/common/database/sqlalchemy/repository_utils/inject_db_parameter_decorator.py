@@ -1,8 +1,6 @@
-import asyncio
+import inspect
 from collections.abc import Callable
 from functools import singledispatchmethod, wraps
-from inspect import iscoroutinefunction, signature
-from types import UnionType
 from typing import Any, TypeVar, Union, get_args, get_origin
 
 from fastgear.common.database.sqlalchemy.session import AllSessionType, db_session
@@ -23,35 +21,34 @@ def inject_db_parameter_decorator(cls: type[ClassType]) -> type[ClassType]:
 
     """
 
-    def decorate_method(attr_value: Any) -> Any:
+    def _decorate_attr(attr_value: Any) -> Any:
+        # staticmethod/classmethod
         if isinstance(attr_value, staticmethod | classmethod):
-            func = attr_value.__func__
-            decorated_func = inject_db_parameter_if_missing(func)
-            return type(attr_value)(decorated_func)
+            fn = attr_value.__func__
+            wrapped = inject_db_parameter_if_missing(fn)
+            return type(attr_value)(wrapped)
 
+        # singledispatchmethod
         if isinstance(attr_value, singledispatchmethod):
             dispatcher = attr_value.dispatcher
-            # Wrap all registered implementations
-            for typ, func in dispatcher.registry.items():
-                # Wrap the function
-                wrapped_func = inject_db_parameter_if_missing(func)
-                # Re-register the function
-                dispatcher.register(typ, wrapped_func)
-            # Reconstruct the singledispatchmethod
+            # Copy and wrap each registered implementation
+            for typ, fn in list(dispatcher.registry.items()):
+                wrapped = inject_db_parameter_if_missing(fn)
+                dispatcher.register(typ, wrapped)
             return singledispatchmethod(dispatcher)
 
-        if callable(attr_value):
-            # Regular method
+        # Normal method or function
+        if inspect.isfunction(attr_value):
             return inject_db_parameter_if_missing(attr_value)
 
+        # Leave other attributes unchanged
         return attr_value
 
-    # Iterate over all class attributes to find methods (excluding magic methods)
-    for attr_name, attr_value in cls.__dict__.items():
-        if attr_name.startswith("__"):
+    for name, value in list(cls.__dict__.items()):
+        # Ignore special and private attributes
+        if name.startswith("__") and name.endswith("__"):
             continue
-        new_attr = decorate_method(attr_value)
-        setattr(cls, attr_name, new_attr)
+        setattr(cls, name, _decorate_attr(value))
 
     return cls
 
@@ -60,39 +57,62 @@ def inject_db_parameter_if_missing(func: Callable[..., Any]) -> Callable[..., An
     """Decorator that injects a Session or AsyncSession instance into the function arguments
     if it is missing and required by the function's signature.
     """
+    sig = inspect.signature(func)
+    params = tuple(sig.parameters.values())
+    is_coro = inspect.iscoroutinefunction(func)
 
-    def db_session_injection(*args: tuple[Any], **kwargs: Any) -> (tuple[Any], Any):
-        sig = signature(func)
-        params = list(sig.parameters.values())
-
-        # Check if a Session instance is not among the arguments and if injection is needed
-        if not any(isinstance(arg, AllSessionType) for arg in args):
-            for i, param in enumerate(params):
-                if (
-                    param.default is None
-                    and param.name not in kwargs
-                    and len(args) <= i
-                    and is_valid_session_type(param.annotation)
-                ):
-                    kwargs[param.name] = db_session.get()
-
-        return args, kwargs
-
-    def is_valid_session_type(annotation: Any) -> bool:
-        origin = get_origin(annotation)
-        if origin in (Union, UnionType):
+    def _is_valid_session_annotation(annot: Any) -> bool:
+        origin = get_origin(annot)
+        if origin in (Union, getattr(__import__("types"), "UnionType", Union)):
             return any(
-                isinstance(cls, type) and issubclass(cls, AllSessionType)
-                for cls in get_args(annotation)
+                isinstance(t, type) and issubclass(t, AllSessionType) for t in get_args(annot)
             )
-        return isinstance(annotation, type) and issubclass(annotation, AllSessionType)
+        return isinstance(annot, type) and issubclass(annot, AllSessionType)
+
+    # Discover the first candidate parameter for injection
+    candidate_idx: int | None = None
+    candidate_name: str | None = None
+    for idx, p in enumerate(params):
+        if (
+            p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+            or p.annotation is inspect._empty
+            or not _is_valid_session_annotation(p.annotation)
+        ):
+            continue
+
+        if p.default is inspect._empty or p.default is None:
+            candidate_idx, candidate_name = idx, p.name
+            break
+
+    # If no candidate found, return the original function
+    if candidate_name is None:
+        return func
+
+    def _needs_injection(args: tuple[Any, ...], kwargs: dict[str, Any]) -> bool:
+        # Already exists in args?
+        if any(isinstance(a, AllSessionType) for a in args):
+            return False
+        # It was passed by name?
+        if candidate_name in kwargs and isinstance(kwargs[candidate_name], AllSessionType):
+            return False
+        # Was it passed positionally?
+        # and it was passed positionally and not None, do not inject
+        return not (len(args) > candidate_idx and args[candidate_idx] is not None)
+
+    if is_coro:
+
+        @wraps(func)
+        async def awrapper(*args: Any, **kwargs: Any) -> Any:
+            if _needs_injection(args, kwargs):
+                kwargs[candidate_name] = db_session.get()
+            return await func(*args, **kwargs)
+
+        return awrapper
 
     @wraps(func)
-    async def wrapper(*args, **kwargs) -> Any:
-        args, kwargs = db_session_injection(*args, **kwargs)
-        if iscoroutinefunction(func):
-            return await func(*args, **kwargs)
-        await asyncio.to_thread(func, *args, **kwargs)
-        return None
+    def swrapper(*args: Any, **kwargs: Any) -> Any:
+        if _needs_injection(args, kwargs):
+            kwargs[candidate_name] = db_session.get()
+        return func(*args, **kwargs)
 
-    return wrapper
+    return swrapper

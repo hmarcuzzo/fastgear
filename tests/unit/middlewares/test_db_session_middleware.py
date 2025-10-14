@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 @pytest.mark.describe("🧪  DBSessionMiddleware")
 class TestDBSessionMiddleware:
-    @pytest.mark.it("✅ Should handle sync session correctly")
+    @pytest.mark.it("✅  Should handle sync session correctly")
     def test_sync_session_handling(
         self,
         mock_sync_session_factory: MagicMock,
@@ -48,7 +48,7 @@ class TestDBSessionMiddleware:
         assert db_session.get() is None
 
     @pytest.mark.asyncio
-    @pytest.mark.it("✅ Should handle async session correctly")
+    @pytest.mark.it("✅  Should handle async session correctly")
     async def test_async_session_handling(
         self,
         mock_async_session_factory: MagicMock,

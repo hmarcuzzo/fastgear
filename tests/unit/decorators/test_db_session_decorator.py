@@ -8,7 +8,7 @@ from fastgear.decorators.db_session_decorator import DBSessionDecorator
 
 @pytest.mark.describe("🧪  DBSessionDecorator")
 class TestDbSessionDecorator:
-    @pytest.mark.it("✅ Should handle async function correctly")
+    @pytest.mark.it("✅  Should handle async function correctly")
     @pytest.mark.asyncio
     async def test_async_function_handling(self):
         mock_session_factory = MagicMock()
@@ -31,7 +31,7 @@ class TestDbSessionDecorator:
         mock_session.__aexit__.assert_called_once()
         assert db_session.get() is None
 
-    @pytest.mark.it("✅ Should handle sync function correctly")
+    @pytest.mark.it("✅  Should handle sync function correctly")
     def test_sync_function_handling(self):
         mock_session_factory = MagicMock()
         mock_session_factory.get_session.return_value = MagicMock()

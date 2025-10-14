@@ -30,7 +30,7 @@ class TestHttpExceptionsHandler:
         HttpExceptionsHandler(app)
 
     @pytest.mark.anyio
-    @pytest.mark.it("✅ Should handle Starlette HTTP exceptions correctly")
+    @pytest.mark.it("✅  Should handle Starlette HTTP exceptions correctly")
     async def test_starlette_http_exception_handling(self, async_client: AsyncClient):
         @app.get("/test")
         async def test_endpoint():
@@ -48,7 +48,7 @@ class TestHttpExceptionsHandler:
         }
 
     @pytest.mark.anyio
-    @pytest.mark.it("✅ Should handle FastAPI validation exceptions correctly")
+    @pytest.mark.it("✅  Should handle FastAPI validation exceptions correctly")
     async def test_fastapi_validation_exception_handling(self, async_client: AsyncClient):
         class ItemIn(BaseModel):
             qty: int
@@ -82,7 +82,7 @@ class TestHttpExceptionsHandler:
         assert isinstance(first["type"], str)
 
     @pytest.mark.anyio
-    @pytest.mark.it("✅ Should handle custom HTTP exceptions correctly")
+    @pytest.mark.it("✅  Should handle custom HTTP exceptions correctly")
     async def test_custom_http_exception_handling(self, async_client: AsyncClient):
         @app.get("/boom")
         async def boom():
@@ -114,7 +114,7 @@ class TestHttpExceptionsHandler:
         assert detail["msg"] == "Resource not found"
         assert detail["type"] == "Not Found"
 
-    @pytest.mark.it("✅ Should generate global exception error messages correctly")
+    @pytest.mark.it("✅  Should generate global exception error messages correctly")
     def test_global_exception_error_message_generation(self):
         request = self._create_request("/test")
 
@@ -151,7 +151,7 @@ class TestHttpExceptionsHandler:
         assert as_dict["detail"][0]["loc"] == ["body", "qty"]
 
     @pytest.mark.anyio
-    @pytest.mark.it("✅ Should customize error response schema in OpenAPI documentation correctly")
+    @pytest.mark.it("✅  Should customize error response schema in OpenAPI documentation correctly")
     async def test_custom_error_response_schema(self, async_client: AsyncClient):
         @app.post("/dummy")
         async def dummy_endpoint(payload: DummyModel):
@@ -220,7 +220,7 @@ class TestHttpExceptionsHandler:
             assert dprops["msg"].get("type") == "string"
             assert dprops["type"].get("type") == "string"
 
-    @pytest.mark.it("✅ Should not call app.openapi() when app.openapi_schema is already set")
+    @pytest.mark.it("✅  Should not call app.openapi() when app.openapi_schema is already set")
     def test_custom_error_response_uses_existing_schema_when_present(
         self, monkeypatch: pytest.MonkeyPatch
     ):
@@ -236,7 +236,7 @@ class TestHttpExceptionsHandler:
         assert app.openapi_schema is existing
 
     @pytest.mark.anyio
-    @pytest.mark.it("❌ Should fail to handle unsupported HTTP exceptions")
+    @pytest.mark.it("❌  Should fail to handle unsupported HTTP exceptions")
     async def test_unsupported_http_exception_handling(self, async_client: AsyncClient):
         @app.get("/unsupported")
         async def unsupported():
@@ -249,7 +249,7 @@ class TestHttpExceptionsHandler:
         assert resp.status_code == HTTP_500_INTERNAL_SERVER_ERROR
         assert resp.headers.get("content-type", "").startswith("application/json") is False
 
-    @pytest.mark.it("❌ Should fail to generate error messages for invalid inputs")
+    @pytest.mark.it("❌  Should fail to generate error messages for invalid inputs")
     @pytest.mark.parametrize(
         "bad_detail",
         [None, "oops", 123, {"unexpected": "fields"}, [{"loc": None, "msg": 123, "type": None}]],
@@ -269,7 +269,7 @@ class TestHttpExceptionsHandler:
         assert any(e.get("loc", [])[0] == "detail" for e in errors)
 
     @pytest.mark.anyio
-    @pytest.mark.it("❌ Should fail to customize error response schema with invalid data")
+    @pytest.mark.it("❌  Should fail to customize error response schema with invalid data")
     async def test_invalid_error_response_schema(
         self, monkeypatch: pytest.MonkeyPatch, async_client: AsyncClient
     ):

@@ -304,7 +304,7 @@ class TestPaginationUtils:
 
         assert result == [{"field": "tags", "value": ["a", "b"]}]
 
-    @pytest.mark.it("✅ merge_with_required_columns returns selected columns")
+    @pytest.mark.it("✅  merge_with_required_columns returns selected columns")
     def test_merge_with_required_columns_returns_selected_scalar_columns_no_relations(
         self, pagination_utils: PaginationUtils
     ) -> None:
@@ -346,7 +346,7 @@ class TestPaginationUtils:
         assert isinstance(result_selected, list)
         assert result_selected == ["name"]
 
-    @pytest.mark.it("✅ merge_with_required_columns Should keep selected scalar fields unchanged")
+    @pytest.mark.it("✅  merge_with_required_columns Should keep selected scalar fields unchanged")
     def test_merge_with_required_columns_keeps_selected_scalar_fields_unchanged(self) -> None:
         class Cols(BaseModel):
             personal_data: str = None

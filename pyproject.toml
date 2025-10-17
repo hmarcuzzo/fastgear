@@ -105,7 +105,8 @@ ignore = [
 "tests/**.py" = [
     "F401",
     "PLR2004",
-    "PT006"
+    "PT006",
+    "N806"
 ]
 
 [tool.ruff.format]

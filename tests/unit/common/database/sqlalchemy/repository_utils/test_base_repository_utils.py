@@ -107,7 +107,7 @@ class TestBaseRepositoryUtils:
             assert "child_with_deleted" in result["generated_maps"][0]
 
     @pytest.mark.it(
-        "✅  soft_delete_cascade_from_parent raises when parent has no deleted_at column"
+        "❌  soft_delete_cascade_from_parent raises when parent has no deleted_at column"
     )
     def test_raises_when_parent_missing_deleted_at(self, engine: Engine) -> None:
         Base = declarative_base()
@@ -130,7 +130,7 @@ class TestBaseRepositoryUtils:
             assert 'has no "deleted_at" column' in str(exc.value)
 
     @pytest.mark.it(
-        "✅  soft_delete_cascade_from_parent raises when parent has composite primary key"
+        "❌  soft_delete_cascade_from_parent raises when parent has composite primary key"
     )
     def test_raises_when_composite_primary_key(self, engine: Engine) -> None:
         Base = declarative_base()

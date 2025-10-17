@@ -70,14 +70,17 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
             List[EntityType]: A list of the created records.
 
         """
-        for index, record in enumerate(new_records):
-            if isinstance(record, BaseModel):
-                model_data = record.model_dump(exclude_unset=True)
-                new_records[index] = self.entity(**model_data)
 
-        db.add_all(new_records)
+        items: list[EntityType] = []
+        for record in new_records:
+            item = record
+            if isinstance(record, BaseModel):
+                item = self.entity(**record.model_dump(exclude_unset=True))
+            items.append(item)
+
+        db.add_all(items)
         await db.flush()
-        return new_records
+        return items
 
     @staticmethod
     async def save(

@@ -202,11 +202,11 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         self.logger.debug(message)
         raise NotImplementedError(message)
 
-    # Register for dict and None explicitly (Python 3.10 compatibility)
-    @find.register(dict)
-    @find.register(type(None))
-    async def _(self, options: dict | None, db: AsyncSessionType = None) -> Sequence[EntityType]:
-        """Implementation when stmt_or_filter is FindManyOptions-like mapping or None."""
+    @find.register
+    async def _(
+        self, options: FindManyOptions | dict | None, db: AsyncSessionType = None
+    ) -> Sequence[EntityType]:
+        """Implementation when stmt_or_filter is an instance of FindManyOptions."""
         select_statement = self.select_constructor.build_select_statement(options)
         return await self.find(select_statement, db=db)  # Call the method registered for Select
 
@@ -234,11 +234,9 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         self.logger.debug(message)
         raise NotImplementedError(message)
 
-    # Register for dict and None explicitly
-    @count.register(dict)
-    @count.register(type(None))
-    async def _(self, options: dict | None, db: AsyncSessionType = None) -> int:
-        """Implementation when stmt_or_filter is FindManyOptions-like mapping or None."""
+    @count.register
+    async def _(self, options: FindManyOptions | dict | None, db: AsyncSessionType = None) -> int:
+        """Implementation when stmt_or_filter is an instance of FindManyOptions."""
         select_statement = self.select_constructor.build_select_statement(options)
         return await self.count(select_statement, db=db)
 
@@ -280,16 +278,15 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         find_many_options = self.select_constructor.build_options(search_filter)
         return await self.find_and_count(find_many_options, db)
 
-    # Register for dict and None explicitly
-    @find_and_count.register(dict)
-    @find_and_count.register(type(None))
+    @find_and_count.register
     async def _(
-        self, search_filter: dict | None, db: AsyncSessionType = None
+        self, search_filter: FindManyOptions | dict | None, db: AsyncSessionType = None
     ) -> tuple[Sequence[EntityType], int]:
-        """Implementation when search_filter is FindManyOptions-like mapping or None."""
+        """Implementation when search_filter is an instance of FindManyOptions."""
         select_statement = self.select_constructor.build_select_statement(search_filter)
         count = await self.count(select_statement, db)
         result = await self.find(select_statement, db)
+
         return result, count
 
     async def update(

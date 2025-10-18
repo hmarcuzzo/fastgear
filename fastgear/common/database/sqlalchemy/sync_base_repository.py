@@ -260,7 +260,7 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
         raise NotImplementedError(message)
 
     @find_and_count.register
-    async def _(
+    def _(
         self, search_filter: Pagination, db: SyncSessionType = None
     ) -> tuple[Sequence[EntityType], int]:
         """Implementation when search_filter is an instance of Pagination."""
@@ -268,7 +268,7 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
         return self.find_and_count(find_many_options, db)
 
     @find_and_count.register
-    async def _(
+    def _(
         self, search_filter: FindManyOptions | dict | None, db: SyncSessionType = None
     ) -> tuple[Sequence[EntityType], int]:
         """Implementation when search_filter is an instance of FindManyOptions."""

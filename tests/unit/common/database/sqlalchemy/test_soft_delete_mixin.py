@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import Integer, String, create_engine, select
@@ -45,7 +45,7 @@ class TestSoftDeleteMixin:
             deleted = User()
             deleted.name = "deleted"
 
-            deleted.deleted_at = datetime.now(timezone.utc)
+            deleted.deleted_at = datetime.now(UTC)
             session.add_all([active, deleted])
             session.commit()
 
@@ -63,7 +63,7 @@ class TestSoftDeleteMixin:
 
             deleted = User()
             deleted.name = "deleted"
-            deleted.deleted_at = datetime.now(timezone.utc)
+            deleted.deleted_at = datetime.now(UTC)
 
             session.add_all([active, deleted])
             session.commit()

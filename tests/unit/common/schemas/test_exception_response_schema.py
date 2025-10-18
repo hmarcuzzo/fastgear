@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -37,7 +37,7 @@ class TestExceptionResponseSchema:
     )
     def test_create_exception_response_schema_with_defaults(self) -> None:
         detail = DetailResponseSchema(loc=["a"], msg="m", type="t")
-        ts = datetime.now(timezone.utc)
+        ts = datetime.now(UTC)
 
         exc = ExceptionResponseSchema(
             detail=[detail],
@@ -59,7 +59,7 @@ class TestExceptionResponseSchema:
     @pytest.mark.it("✅  Should accept dicts for nested detail and coerce to DetailResponseSchema")
     def test_detail_accepts_dict_and_coerces(self) -> None:
         detail_dict = {"loc": ["x"], "msg": "m", "type": "t"}
-        ts = datetime.now(timezone.utc)
+        ts = datetime.now(UTC)
 
         exc = ExceptionResponseSchema(
             detail=[detail_dict], timestamp=ts, path="/p", method="POST", status_code=422
@@ -71,7 +71,7 @@ class TestExceptionResponseSchema:
     @pytest.mark.it("❌  Should forbid extra fields when creating the model")
     def test_extra_fields_are_forbidden(self) -> None:
         detail = DetailResponseSchema(loc=["x"], msg="m", type="t")
-        ts = datetime.now(timezone.utc)
+        ts = datetime.now(UTC)
 
         with pytest.raises(ValidationError):
             ExceptionResponseSchema(

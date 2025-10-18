@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
@@ -24,7 +24,7 @@ class _ObjWithUnloadedField:
     def updated_at(self):
         if not self._updated_at_loaded:
             raise InvalidRequestError("attribute not loaded")
-        return datetime.now()
+        return datetime.now(UTC)
 
 
 @pytest.mark.describe("🧪  BaseSchema")
@@ -32,7 +32,7 @@ class TestBaseSchema:
     @pytest.mark.it("✅  Should validate from dict and parse types")
     def test_model_validate_exclude_unloaded_from_dict(self) -> None:
         uid = uuid4()
-        now = datetime.now()
+        now = datetime.now(UTC)
         payload = {"id": str(uid), "created_at": now.isoformat(), "updated_at": now.isoformat()}
 
         result = BaseSchema.model_validate_exclude_unloaded(payload)
@@ -44,7 +44,7 @@ class TestBaseSchema:
     @pytest.mark.it("✅  Should validate from object and include loaded attributes")
     def test_model_validate_exclude_unloaded_from_object(self) -> None:
         uid = uuid4()
-        now = datetime.now()
+        now = datetime.now(UTC)
         obj = _ObjWithAttrs(id=uid, created_at=now, updated_at=now)
 
         result = BaseSchema.model_validate_exclude_unloaded(obj)
@@ -58,7 +58,7 @@ class TestBaseSchema:
     )
     def test_skips_unloaded_fields(self) -> None:
         uid = uuid4()
-        now = datetime.now()
+        now = datetime.now(UTC)
         obj = _ObjWithUnloadedField(_id=uid, created_at=now, updated_at_loaded=False)
 
         result = BaseSchema.model_validate_exclude_unloaded(obj)
@@ -79,8 +79,8 @@ class TestBaseSchema:
                 raise InvalidRequestError("id not loaded")
 
             # created_at exists so that only id is missing
-            created_at = datetime.now()
-            updated_at = datetime.now()
+            created_at = datetime.now(UTC)
+            updated_at = datetime.now(UTC)
 
         with pytest.raises(ValidationError):
             BaseSchema.model_validate_exclude_unloaded(ObjMissingID())

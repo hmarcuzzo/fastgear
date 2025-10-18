@@ -1,6 +1,6 @@
 import json
 from copy import deepcopy
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -151,7 +151,7 @@ class HttpExceptionsHandler:
         return ExceptionResponseSchema(
             detail=detail,
             status_code=status_code,
-            timestamp=datetime.now().astimezone(),
+            timestamp=datetime.now(UTC).astimezone(),
             path=request.url.path,
             method=request.method,
         )

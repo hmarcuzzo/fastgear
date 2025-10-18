@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import DateTime, event
@@ -53,11 +53,11 @@ def set_before_insert(mapper, connection, target: BaseEntity) -> None:
 
     """
     if not target.created_at:
-        target.created_at = datetime.now()
+        target.created_at = datetime.now(UTC)
     if not target.updated_at or target.updated_at < target.created_at:
         target.updated_at = target.created_at
 
 
 @event.listens_for(BaseEntity, "before_update", propagate=True)
 def set_before_update(mapper, connection, target: BaseEntity) -> None:
-    target.updated_at = datetime.now()
+    target.updated_at = datetime.now(UTC)

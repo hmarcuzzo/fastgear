@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
 
@@ -11,7 +11,7 @@ def mock_record() -> dict:
         dict: A mock record with basic fields.
     """
     return {
-        "time": datetime(2024, 3, 20, 10, 30, 45, 123456, tzinfo=timezone.utc),
+        "time": datetime(2024, 3, 20, 10, 30, 45, 123456, tzinfo=UTC),
         "extra": {"name": "test_module"},
         "module": "test_module",
         "level": type("Level", (), {"name": "INFO"}),
@@ -27,7 +27,7 @@ def mock_record_without_name() -> dict:
         dict: A mock record without name in extra field.
     """
     return {
-        "time": datetime(2024, 3, 20, 10, 30, 45, 123456, tzinfo=timezone.utc),
+        "time": datetime(2024, 3, 20, 10, 30, 45, 123456, tzinfo=UTC),
         "extra": {},
         "module": "test_module",
         "level": type("Level", (), {"name": "ERROR"}),

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 from pydantic import BaseModel
-from sqlalchemy import Select
+from sqlalchemy import Select, column, delete, table
 from sqlalchemy.exc import NoResultFound
 
 from fastgear.common.database.sqlalchemy.async_base_repository import AsyncBaseRepository
@@ -33,11 +33,13 @@ class _ExecuteResult:
         one: tuple[Any] | Exception | None = None,
         scalars: list[Any] | None = None,
         count: int | None = None,
+        all_rows: list[Any] | None = None,
     ) -> None:
         self._first = first
         self._one = one
         self._scalars = scalars
         self._count = count
+        self._all_rows = all_rows
 
     def first(self) -> tuple[Any] | None:
         return self._first
@@ -54,6 +56,10 @@ class _ExecuteResult:
     def scalar(self) -> int:
         assert self._count is not None
         return self._count
+
+    # Support Delete branch which expects .all()
+    def all(self) -> list[Any]:
+        return list(self._all_rows or [])
 
 
 class FakeAsyncSession:
@@ -151,6 +157,18 @@ class TestAsyncBaseRepository:
         assert isinstance(one, UserEntity)
 
     @pytest.mark.asyncio
+    @pytest.mark.it("✅  create_all keeps entity instances as-is (BaseModel branch False)")
+    async def test_create_all_with_entity_instance(self) -> None:
+        db = FakeAsyncSession()
+        repo = UserRepo()
+        entity = UserEntity(id="9", name="no-convert")
+
+        created = await repo.create_all([entity], db)
+        assert created == [entity]
+        assert entity in db.added
+        assert db.flush_calls == 1
+
+    @pytest.mark.asyncio
     @pytest.mark.it("✅  save commits or flushes and refreshes when entity provided")
     async def test_save_and_refresh_record(self) -> None:
         db = FakeAsyncSession()
@@ -181,12 +199,40 @@ class TestAsyncBaseRepository:
         assert user in db.refreshed
 
     @pytest.mark.asyncio
+    @pytest.mark.it("✅  save with None does not refresh (new_record branch False)")
+    async def test_save_without_record_does_not_refresh(self) -> None:
+        db = FakeAsyncSession()
+        db.commit_calls = 0
+        db.refreshed.clear()
+
+        result = await AsyncBaseRepository.save(None, db)
+        assert result is None
+        assert db.commit_calls == 1  # commit still happens
+        assert db.refreshed == []  # no refresh when new_record is falsy
+
+    @pytest.mark.asyncio
     @pytest.mark.it("❌  find raises NotImplemented for unsupported types")
     async def test_find_unsupported(self) -> None:
         repo = UserRepo()
         db = FakeAsyncSession()
         with pytest.raises(NotImplementedError):
             await repo.find(object(), db)
+
+    @pytest.mark.asyncio
+    @pytest.mark.it("❌  count raises NotImplemented for unsupported types")
+    async def test_count_unsupported(self) -> None:
+        repo = UserRepo()
+        db = FakeAsyncSession()
+        with pytest.raises(NotImplementedError):
+            await repo.count(object(), db)
+
+    @pytest.mark.asyncio
+    @pytest.mark.it("❌  find_and_count raises NotImplemented for unsupported types")
+    async def test_find_and_count_unsupported(self) -> None:
+        repo = UserRepo()
+        db = FakeAsyncSession()
+        with pytest.raises(NotImplementedError):
+            await repo.find_and_count(object(), db)
 
     @pytest.mark.asyncio
     @pytest.mark.it("✅  find with Select returns scalars from db.execute")
@@ -310,6 +356,44 @@ class TestAsyncBaseRepository:
         assert user in db.refreshed
 
     @pytest.mark.asyncio
+    @pytest.mark.it("✅  update accepts BaseModel and persists when changed")
+    async def test_update_with_base_model(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        repo = UserRepo()
+        db = FakeAsyncSession()
+        user = UserEntity(id="3", name="Start")
+
+        async def _fake_find_one_or_fail(filt, db=None):  # noqa: ANN001
+            return user
+
+        class UpdateModel(BaseModel):
+            name: str
+
+        monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
+
+        result = await repo.update("3", UpdateModel(name="Changed"), db)
+        assert user.name == "Changed"
+        assert result["affected"] == 1
+        assert db.commit_calls == 1
+        assert user in db.refreshed
+
+    @pytest.mark.asyncio
+    @pytest.mark.it("✅  delete with Delete statement executes and commits")
+    async def test_delete_with_delete_statement(self) -> None:
+        repo = UserRepo()
+        db = FakeAsyncSession()
+        # Prepare a dummy table and Delete statement
+        t = table("t", column("id"))
+        stmt = delete(t).where(t.c.id == "x")
+
+        # Queue an execute result that supports .all()
+        db.queue_execute(_ExecuteResult(all_rows=[("row",)]))
+
+        res = await repo.delete(stmt, db)
+        assert res["affected"] == 1
+        assert res["raw"] == [("row",)]
+        assert db.commit_calls == 1
+
+    @pytest.mark.asyncio
     @pytest.mark.it("✅  delete with id deletes entity and commits")
     async def test_delete_with_id(self, monkeypatch: pytest.MonkeyPatch) -> None:
         repo = UserRepo()
@@ -406,3 +490,18 @@ class TestAsyncBaseRepository:
         assert res["affected"] == 0
         assert called["id"] == "ID-7"
         assert db.commit_calls == 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.it("❌  soft_delete re-raises inner exception")
+    async def test_soft_delete_reraises_exception(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        repo = UserRepo()
+        db = FakeAsyncSession()
+
+        # Cause the inner function executed in run_sync to raise
+        def _raise(entity, parent_entity_id, db=None):  # noqa: ANN001, ARG001
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(repo.repo_utils, "soft_delete_cascade_from_parent", _raise)
+
+        with pytest.raises(RuntimeError, match="boom"):
+            await repo.soft_delete("ANY", db)

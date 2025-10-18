@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -11,54 +9,10 @@ from sqlalchemy.exc import NoResultFound
 
 from fastgear.common.database.sqlalchemy.sync_base_repository import SyncBaseRepository
 from fastgear.types.pagination import Pagination
+from tests.fixtures.common.base_repository_fixtures import UserEntity, _ExecuteResult
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-
-
-# ---- Test doubles ----
-class _Scalars:
-    def __init__(self, items: list[Any] | None = None) -> None:
-        self._items = items or []
-
-    def all(self) -> list[Any]:
-        return list(self._items)
-
-
-class _ExecuteResult:
-    def __init__(
-        self,
-        *,
-        first: tuple[Any] | None = None,
-        one: tuple[Any] | Exception | None = None,
-        scalars: list[Any] | None = None,
-        count: int | None = None,
-        all_rows: list[Any] | None = None,
-    ) -> None:
-        self._first = first
-        self._one = one
-        self._scalars = scalars
-        self._count = count
-        self._all_rows = all_rows
-
-    def first(self) -> tuple[Any] | None:
-        return self._first
-
-    def one(self) -> tuple[Any]:
-        if isinstance(self._one, Exception):
-            raise self._one
-        assert self._one is not None
-        return self._one
-
-    def scalars(self) -> _Scalars:
-        return _Scalars(self._scalars)
-
-    def scalar(self) -> int:
-        assert self._count is not None
-        return self._count
-
-    def all(self) -> list[Any]:
-        return list(self._all_rows or [])
 
 
 class FakeSyncSession:
@@ -111,13 +65,6 @@ class FakeSyncSession:
 
     def begin_nested(self) -> FakeSyncSession._BeginNested:
         return FakeSyncSession._BeginNested(self)
-
-
-# ---- Sample entity ----
-@dataclass
-class UserEntity:
-    id: str
-    name: str
 
 
 # ---- Concrete repository for tests ----
@@ -298,7 +245,7 @@ class TestSyncBaseRepository:
         assert len(items) == 2
 
     @pytest.mark.asyncio
-    @pytest.mark.it("❌ find_and_count raises NotImplemented for unsupported types")
+    @pytest.mark.it("❌  find_and_count raises NotImplemented for unsupported types")
     async def test_find_and_count_unsupported(self) -> None:
         repo = UserRepo()
         db = FakeSyncSession()

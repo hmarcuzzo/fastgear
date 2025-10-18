@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -11,55 +10,10 @@ from sqlalchemy.exc import NoResultFound
 from fastgear.common.database.sqlalchemy.async_base_repository import AsyncBaseRepository
 from fastgear.common.database.sqlalchemy.session import db_session
 from fastgear.types.pagination import Pagination
+from tests.fixtures.common.base_repository_fixtures import UserEntity, _ExecuteResult
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-
-
-# ---- Test doubles ----
-class _Scalars:
-    def __init__(self, items: list[Any] | None = None) -> None:
-        self._items = items or []
-
-    def all(self) -> list[Any]:
-        return list(self._items)
-
-
-class _ExecuteResult:
-    def __init__(
-        self,
-        *,
-        first: tuple[Any] | None = None,
-        one: tuple[Any] | Exception | None = None,
-        scalars: list[Any] | None = None,
-        count: int | None = None,
-        all_rows: list[Any] | None = None,
-    ) -> None:
-        self._first = first
-        self._one = one
-        self._scalars = scalars
-        self._count = count
-        self._all_rows = all_rows
-
-    def first(self) -> tuple[Any] | None:
-        return self._first
-
-    def one(self) -> tuple[Any]:
-        if isinstance(self._one, Exception):
-            raise self._one
-        assert self._one is not None
-        return self._one
-
-    def scalars(self) -> _Scalars:
-        return _Scalars(self._scalars)
-
-    def scalar(self) -> int:
-        assert self._count is not None
-        return self._count
-
-    # Support Delete branch which expects .all()
-    def all(self) -> list[Any]:
-        return list(self._all_rows or [])
 
 
 class FakeAsyncSession:
@@ -118,13 +72,6 @@ class FakeAsyncSession:
     async def run_sync(self, fn):
         # Call provided function with the sync_db stub
         return fn(self.sync_db)
-
-
-# ---- Sample entity ----
-@dataclass
-class UserEntity:
-    id: str
-    name: str
 
 
 # ---- Concrete repository for tests ----

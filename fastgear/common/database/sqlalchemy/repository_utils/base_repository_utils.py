@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel
 from sqlalchemy import (
@@ -46,7 +46,7 @@ class BaseRepositoryUtils:
     ) -> UpdateResult:
         response = UpdateResult(raw=[], affected=0, generated_maps=[])
 
-        ts = datetime.now(timezone.utc)
+        ts = datetime.now(UTC)
         parent_table: Table = entity.__table__
         metadata = parent_table.metadata
 

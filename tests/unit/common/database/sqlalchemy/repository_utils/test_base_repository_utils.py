@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import DateTime, ForeignKey, Integer, String, select
@@ -217,7 +217,7 @@ class TestBaseRepositoryUtils:
 
         with Session(engine) as session:
             # Child already marked as deleted -> UPDATE matches zero rows
-            already = datetime.now(timezone.utc)
+            already = datetime.now(UTC)
             session.add(Parent(id=1, deleted_at=None))
             session.add(ChildWithDeleted(id=10, parent_id=1, deleted_at=already))
             session.commit()

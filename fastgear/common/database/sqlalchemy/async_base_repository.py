@@ -362,11 +362,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
     ) -> UpdateResult:
         try:
             async with db.begin_nested():
-                parent_entity_id = (
-                    delete_statement
-                    if isinstance(delete_statement, str)
-                    else (await self.find_one_or_fail(delete_statement, db)).id
-                )
+                parent_entity_id = (await self.find_one_or_fail(delete_statement, db)).id
 
                 response = await db.run_sync(
                     lambda sync_db: self.repo_utils.soft_delete_cascade_from_parent(

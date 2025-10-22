@@ -130,6 +130,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
             EntityType | List[EntityType]: The refreshed record(s).
 
         """
+        # TODO: add support for attribute_names parameter in order to load relations and only specific attributes
         await asyncio.gather(*(db.refresh(entity) for entity in new_record)) if isinstance(
             new_record, list
         ) else await db.refresh(new_record)

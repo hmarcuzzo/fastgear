@@ -60,12 +60,12 @@ class BaseRepositoryUtils:
             raise ValueError("Composite primary keys are not supported")
         pk_col = parent_pks[0]
 
-        db.execute(
+        result = db.execute(
             update(parent_table)
             .where(pk_col == parent_entity_id, parent_table.c[deleted_at_column].is_(None))
             .values({deleted_at_column: ts})
         )
-        response["affected"] += 1
+        response["affected"] += getattr(result, "rowcount", None)
         response["raw"].append({"table": parent_table.name, "id": parent_entity_id})
 
         frontier: set[Table] = {parent_table}

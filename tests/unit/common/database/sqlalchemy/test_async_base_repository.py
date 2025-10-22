@@ -399,12 +399,18 @@ class TestAsyncBaseRepository:
         repo = UserRepo()
         db = FakeAsyncSession()
 
+        # Ensure we don't hit the real select_constructor on dataclass entity
+        async def _fake_find_one_or_fail(stmt, db=None):  # noqa: ANN001, ARG001
+            return UserEntity(id="U1", name="stub")
+
+        monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
+
         # Stub repo_utils to return a known response
         expected = {"raw": ["ok"], "affected": 3, "generated_maps": [["a", "b"]]}
         monkeypatch.setattr(
             repo.repo_utils,
             "soft_delete_cascade_from_parent",
-            lambda entity, parent_entity_id, db=None: expected,
+            lambda entity, parent_entity_id, db=None: expected,  # noqa: ARG001
         )
 
         res = await repo.soft_delete("U1", db)
@@ -443,6 +449,12 @@ class TestAsyncBaseRepository:
     async def test_soft_delete_reraises_exception(self, monkeypatch: pytest.MonkeyPatch) -> None:
         repo = UserRepo()
         db = FakeAsyncSession()
+
+        # Ensure we resolve parent id without hitting SQLAlchemy inspect on dataclass
+        async def _fake_find_one_or_fail(stmt, db=None):  # noqa: ANN001, ARG001
+            return UserEntity(id="ANY", name="x")
+
+        monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
 
         # Cause the inner function executed in run_sync to raise
         def _raise(entity, parent_entity_id, db=None):  # noqa: ANN001, ARG001

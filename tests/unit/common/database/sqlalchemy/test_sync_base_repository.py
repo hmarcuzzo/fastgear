@@ -357,6 +357,13 @@ class TestSyncBaseRepository:
         repo = UserRepo()
         db = FakeSyncSession()
 
+        # Avoid select_constructor.inspect by returning a known entity directly
+        monkeypatch.setattr(
+            repo,
+            "find_one_or_fail",
+            lambda stmt, db=None: UserEntity(id="U1", name="stub"),  # noqa: ARG001
+        )
+
         expected = {"raw": ["ok"], "affected": 3, "generated_maps": [["a", "b"]]}
         monkeypatch.setattr(
             repo.repo_utils,
@@ -397,6 +404,11 @@ class TestSyncBaseRepository:
     def test_soft_delete_reraises_exception(self, monkeypatch: pytest.MonkeyPatch) -> None:
         repo = UserRepo()
         db = FakeSyncSession()
+
+        # Ensure parent id resolution succeeds without SQLAlchemy inspect
+        monkeypatch.setattr(
+            repo, "find_one_or_fail", lambda stmt, db=None: UserEntity(id="ANY", name="x")
+        )
 
         def _raise(entity, parent_entity_id, db=None):
             raise RuntimeError("boom")

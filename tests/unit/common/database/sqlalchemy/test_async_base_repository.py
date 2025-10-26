@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 from pydantic import BaseModel
 from sqlalchemy import Select, column, delete, table
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 
 from fastgear.common.database.sqlalchemy.async_base_repository import AsyncBaseRepository
 from fastgear.common.database.sqlalchemy.session import db_session
@@ -440,3 +440,23 @@ class TestAsyncBaseRepository:
 
         with pytest.raises(RuntimeError, match="boom"):
             await repo.soft_delete("ANY", db)
+
+    @pytest.mark.asyncio
+    @pytest.mark.it("❌  find_one_or_fail converts MultipleResultsFound into NotFoundException")
+    async def test_find_one_or_fail_multiple_results(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        repo = UserRepo()
+        db = FakeAsyncSession()
+        # Ensure build_select_statement returns a bare Select so .limit(2) works
+        monkeypatch.setattr(
+            repo.select_constructor,
+            "build_select_statement",
+            lambda f: Select(),  # noqa: ARG005
+        )
+        # Queue result that triggers MultipleResultsFound on scalar_one()
+        db.queue_execute(_ExecuteResult(one=MultipleResultsFound()))
+
+        with pytest.raises(
+            Exception,
+            match='Multiple entities of type "UserEntity" found that match with the search filter',
+        ):
+            await repo.find_one_or_fail({"x": 1}, db)

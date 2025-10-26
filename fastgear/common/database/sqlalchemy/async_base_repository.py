@@ -8,7 +8,7 @@ from sqlalchemy import (
     literal_column,
     select,
 )
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.sql.dml import Delete, ReturningDelete
 
 from fastgear.common.database.abstract_repository import AbstractRepository
@@ -132,16 +132,23 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
             NotFoundException: If no record matches the search filter.
 
         """
-        select_statement = self.select_constructor.build_select_statement(search_filter)
+        select_statement = self.select_constructor.build_select_statement(search_filter).limit(2)
         try:
-            result = (await db.execute(select_statement)).one()[0]
+            return (await db.execute(select_statement)).scalar_one()
+
         except NoResultFound:
             entity_name = self.entity.__name__
             message = f'Could not find any entity of type "{entity_name}" that matches with the search filter'
             self.logger.debug(message)
             raise NotFoundException(message, [entity_name])
 
-        return result
+        except MultipleResultsFound:
+            entity_name = self.entity.__name__
+            message = (
+                f'Multiple entities of type "{entity_name}" found that match with the search filter'
+            )
+            self.logger.debug(message)
+            raise NotFoundException(message, [entity_name])
 
     @singledispatchmethod
     async def find(

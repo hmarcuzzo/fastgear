@@ -43,6 +43,21 @@ class _ExecuteResult:
         assert self._one is not None
         return self._one
 
+    def scalar_one(self) -> Any:
+        """Mimic SQLAlchemy Result.scalar_one(): return the first element of the row.
+
+        Raises the stored exception if provided.
+        """
+        if isinstance(self._one, Exception):
+            raise self._one
+        assert self._one is not None
+        row = self._one
+        # Support either a 1-tuple like (entity,) or a direct scalar value
+        if isinstance(row, tuple):
+            assert len(row) >= 1
+            return row[0]
+        return row
+
     def scalars(self) -> _Scalars:
         return _Scalars(self._scalars)
 

@@ -96,10 +96,10 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
             EntityType | None: The found record or None if no record matches the search filter.
 
         """
-        select_statement = self.select_constructor.build_select_statement(search_filter)
-        result = db.execute(select_statement).first()
+        select_statement = self.select_constructor.build_select_statement(search_filter).limit(1)
+        result = db.execute(select_statement).scalars().first()
 
-        return result[0] if result else None
+        return result if result else None
 
     def find_one_or_fail(
         self, search_filter: str | FindOneOptions, db: SyncSessionType = None

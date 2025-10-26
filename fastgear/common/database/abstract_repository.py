@@ -59,47 +59,14 @@ class AbstractRepository(ABC, Generic[EntityType]):
 
     @staticmethod
     @abstractmethod
-    def save(
-        new_record: EntityType | list[EntityType] = None, db: SessionType = None
-    ) -> EntityType | list[EntityType] | None:
+    def save(db: SessionType = None) -> None:
         """Abstract method to save records.
 
         Args:
-            new_record (EntityType | List[EntityType], optional): The new record or list of records
-                to be saved. Defaults to None.
             db (SessionType): The database session.
 
         Returns:
-            EntityType | List[EntityType] | None: The saved record or list of records, or None
-                if no records were saved.
-        """
-
-    @staticmethod
-    @abstractmethod
-    def commit_or_flush(db: SessionType = None) -> None:
-        """Abstract method to commit or flush.
-
-        Args:
-            db (SessionType): The database session.
-
-        Returns:
-            None
-        """
-
-    @staticmethod
-    @abstractmethod
-    def refresh_record(
-        new_record: EntityType | list[EntityType], db: SessionType = None
-    ) -> EntityType | list[EntityType]:
-        """Abstract method to refresh records.
-
-        Args:
-            new_record (EntityType | List[EntityType]): The record or list of records
-                to be refreshed.
-            db (SessionType): The database session.
-
-        Returns:
-            EntityType | List[EntityType]: The refreshed record or list of records.
+            None.
         """
 
     @abstractmethod

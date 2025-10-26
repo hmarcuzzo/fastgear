@@ -1,4 +1,3 @@
-import asyncio
 from collections.abc import Sequence
 from functools import singledispatchmethod
 
@@ -6,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import (
     Select,
     func,
+    literal_column,
     select,
 )
 from sqlalchemy.exc import NoResultFound
@@ -83,58 +83,17 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         return items
 
     @staticmethod
-    async def save(
-        new_record: EntityType | list[EntityType] = None, db: AsyncSessionType = None
-    ) -> EntityType | list[EntityType] | None:
-        """Saves the given record(s) to the database by committing or flushing the session.
-
-        Args:
-            new_record (EntityType | List[EntityType], optional): The record(s) to be saved. If provided, the record(s)
-                will be refreshed after saving. Defaults to None.
-            db (AsyncSessionType, optional): The database session. Defaults to None.
-
-        Returns:
-            EntityType | List[EntityType] | None: The saved record(s) or None if no record was provided.
-
-        """
-        await AsyncBaseRepository.commit_or_flush(db)
-
-        if new_record:
-            await AsyncBaseRepository.refresh_record(new_record, db)
-        return new_record
-
-    @staticmethod
-    async def commit_or_flush(db: AsyncSessionType = None) -> None:
-        """Commits the current transaction if not in a nested transaction, otherwise flushes the session.
+    async def save(db: AsyncSessionType = None) -> None:
+        """Saves the current transaction in the database session.
 
         Args:
             db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
-            None
+            None.
+
         """
         await db.flush() if db.in_nested_transaction() else await db.commit()
-
-    @staticmethod
-    async def refresh_record(
-        new_record: EntityType | list[EntityType], db: AsyncSessionType = None
-    ) -> EntityType | list[EntityType]:
-        """Refreshes the given record(s) in the database session.
-
-        Args:
-            new_record (EntityType | List[EntityType]): The record(s) to be refreshed. It can be a single instance or
-                a list of instances.
-            db (AsyncSessionType, optional): The database session. Defaults to None.
-
-        Returns:
-            EntityType | List[EntityType]: The refreshed record(s).
-
-        """
-        # TODO: add support for attribute_names parameter in order to load relations and only specific attributes
-        await asyncio.gather(*(db.refresh(entity) for entity in new_record)) if isinstance(
-            new_record, list
-        ) else await db.refresh(new_record)
-        return new_record
 
     async def find_one(
         self, search_filter: str | FindOneOptions, db: AsyncSessionType = None
@@ -244,11 +203,14 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
     @count.register
     async def _(self, select_stmt: Select, db: AsyncSessionType = None) -> int:
         """Implementation when stmt_or_filter is an instance of Select."""
-        return (
-            await db.execute(
-                select(func.count("*")).select_from(select_stmt.offset(None).limit(None).subquery())
-            )
-        ).scalar()
+        stmt = select(func.count()).select_from(
+            select_stmt.limit(None)
+            .offset(None)
+            .order_by(None)
+            .with_only_columns(literal_column("1"), maintain_column_froms=True)
+            .subquery()
+        )
+        return await db.scalar(stmt)
 
     @singledispatchmethod
     async def find_and_count(
@@ -323,8 +285,8 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
                 changes_made = True
 
         if changes_made:
-            await self.commit_or_flush(db)
-            await self.refresh_record(record, db)
+            await self.save(db)
+            await db.refresh(record)
 
         return UpdateResult(
             raw=[record] if changes_made else [],
@@ -354,7 +316,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
             await db.delete(record)
             raw = [record.id]
 
-        await self.commit_or_flush(db)
+        await self.save(db)
         return DeleteResult(raw=raw, affected=len(raw))
 
     async def soft_delete(
@@ -372,7 +334,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
                     )
                 )
 
-            await self.commit_or_flush(db)
+            await self.save(db)
             return response
 
         except Exception as e:

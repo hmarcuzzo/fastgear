@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from functools import singledispatchmethod
 
 from pydantic import BaseModel
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, literal_column, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.dml import Delete, ReturningDelete
 
@@ -72,58 +72,16 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
         return items
 
     @staticmethod
-    def save(
-        new_record: EntityType | list[EntityType] = None, db: SyncSessionType = None
-    ) -> EntityType | list[EntityType] | None:
-        """Saves the given record(s) to the database by committing or flushing the session.
+    def save(db: SyncSessionType = None) -> None:
+        """Saves the current transaction to the database.
 
         Args:
-            new_record (EntityType | List[EntityType], optional): The record(s) to be saved.
-                If provided, the record(s) will be refreshed after saving. Defaults to None.
             db (SyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
-            EntityType | List[EntityType] | None: The saved record(s) or None if no record
-                was provided.
-
-        """
-        SyncBaseRepository.commit_or_flush(db)
-
-        if new_record:
-            SyncBaseRepository.refresh_record(new_record, db)
-        return new_record
-
-    @staticmethod
-    def commit_or_flush(db: SyncSessionType = None) -> None:
-        """Commits the current transaction if not in a nested transaction, otherwise flushes
-            the session.
-
-        Args:
-            db (SyncSessionType, optional): The database session. Defaults to None.
-
+            None.
         """
         db.flush() if db.in_nested_transaction() else db.commit()
-
-    @staticmethod
-    def refresh_record(
-        new_record: EntityType | list[EntityType], db: SyncSessionType = None
-    ) -> EntityType | list[EntityType]:
-        """Refreshes the state of the record(s) from the database.
-
-        Args:
-            new_record (EntityType | List[EntityType]): The record(s) to be refreshed.
-            db (SyncSessionType, optional): The database session. Defaults to None.
-
-        Returns:
-            EntityType | List[EntityType]: The refreshed record(s).
-
-        """
-        (
-            db.refresh(new_record)
-            if not isinstance(new_record, list)
-            else (db.refresh(_entity) for _entity in new_record)
-        )
-        return new_record
 
     def find_one(
         self, search_filter: str | FindOneOptions, db: SyncSessionType = None
@@ -234,9 +192,14 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
     @count.register
     def _(self, select_stmt: Select, db: SyncSessionType = None) -> int:
         """Implementation when stmt_or_filter is an instance of Select."""
-        return db.execute(
-            select(func.count("*")).select_from(select_stmt.offset(None).limit(None).subquery())
-        ).scalar()
+        stmt = select(func.count()).select_from(
+            select_stmt.limit(None)
+            .offset(None)
+            .order_by(None)
+            .with_only_columns(literal_column("1"), maintain_column_froms=True)
+            .subquery()
+        )
+        return db.scalar(stmt)
 
     @singledispatchmethod
     def find_and_count(
@@ -310,7 +273,8 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
                 changes_made = True
 
         if changes_made:
-            self.commit_or_flush(db)
+            self.save(db)
+            db.refresh(record)
 
         return UpdateResult(
             raw=[record] if changes_made else [],
@@ -340,7 +304,7 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
             db.delete(record)
             raw = [record.id]
 
-        self.commit_or_flush(db)
+        self.save(db)
         return DeleteResult(raw=raw, affected=len(raw))
 
     def soft_delete(
@@ -356,7 +320,7 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
                     db=db,
                 )
 
-            self.commit_or_flush(db)
+            self.save(db)
             return response
 
         except Exception as e:

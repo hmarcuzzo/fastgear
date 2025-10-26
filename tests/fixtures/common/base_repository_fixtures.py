@@ -17,6 +17,9 @@ class _Scalars:
     def all(self) -> list[Any]:
         return list(self._items)
 
+    def first(self) -> Any | None:
+        return self._items[0] if self._items else None
+
 
 class _ExecuteResult:
     def __init__(
@@ -59,7 +62,12 @@ class _ExecuteResult:
         return row
 
     def scalars(self) -> _Scalars:
-        return _Scalars(self._scalars)
+        items = self._scalars
+        if items is None and self._first is not None:
+            # derive scalars list from first() row
+            row = self._first
+            items = [row[0]] if isinstance(row, tuple) and len(row) >= 1 else [row]
+        return _Scalars(items)
 
     def scalar(self) -> int:
         assert self._count is not None

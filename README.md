@@ -31,7 +31,7 @@
 -  ⚡ **Fully Async**: Leverages Python's async capabilities for non-blocking database operations.
 - 🗄️ **SQLAlchemy 2.0**: Works with the latest SQLAlchemy version for robust database interactions.
 - 🔴 **Redis Support**: Provides support for Redis for caching and other operations.
-- 🔍 **Dynamic Query Building**: Supports building simple queries dynamically, including filtering, sorting, and pagination.
+- 🔍 **Dynamic Query Building**: Supports building simple queries dynamically, including filtering, sorting, soft-delete and pagination.
 - 📊 **Built-in Offset Pagination**: Comes with ready-to-use offset pagination.
 - 🛡️ **Custom Error Handling**: Provides custom error handling for better debugging and user experience.
 - 🔄 **Session Management**: Automatically manages database sessions within a context manager.
@@ -40,7 +40,7 @@
 
 Before installing FastGear, ensure you have the following prerequisites:
 
-* **Python:** Version 3.10 or newer.
+* **Python:** Version 3.11 or newer.
 * **FastAPI:** FastGear is built to work with FastAPI, so having FastAPI in your project is essential.
 * **SQLAlchemy:** FastGear uses SQLAlchemy 2.0 for database operations, so you need SQLAlchemy 2.0 or newer.
 * **Pydantic V2:** FastGear leverages Pydantic models for data validation and serialization, so you need Pydantic 2.0 or newer.

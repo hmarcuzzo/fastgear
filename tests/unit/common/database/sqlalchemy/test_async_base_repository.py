@@ -53,6 +53,12 @@ class FakeAsyncSession:
             raise AssertionError("No queued execute() result for statement")
         return self._execute_queue.pop(0)
 
+    async def scalar(self, stmt: Any) -> Any:
+        # Mirror AsyncSession.scalar() by returning a scalar value from queued results
+        if not self._execute_queue:
+            raise AssertionError("No queued scalar() result for statement")
+        return self._execute_queue.pop(0).scalar()
+
     async def delete(self, entity: Any) -> None:
         self.deleted.append(entity)
 
@@ -116,43 +122,13 @@ class TestAsyncBaseRepository:
         assert db.flush_calls == 1
 
     @pytest.mark.asyncio
-    @pytest.mark.it("✅  save commits or flushes and refreshes when entity provided")
-    async def test_save_and_refresh_record(self) -> None:
-        db = FakeAsyncSession()
-        user = UserEntity(id="u1", name="X")
-
-        # When not in nested transaction -> commit
-        await AsyncBaseRepository.commit_or_flush(db)
-        assert db.commit_calls == 1
-        assert db.flush_calls == 0
-
-        # When in nested transaction -> flush
-        async with db.begin_nested():
-            await AsyncBaseRepository.commit_or_flush(db)
-        assert db.flush_calls == 1
-
-        # refresh_record works for single and list
-        db.refreshed.clear()
-        await AsyncBaseRepository.refresh_record(user, db)
-        await AsyncBaseRepository.refresh_record([user], db)
-        assert db.refreshed.count(user) == 2
-
-        # save triggers commit_or_flush + refresh
-        db.commit_calls = 0
-        db.refreshed.clear()
-        result = await AsyncBaseRepository.save(user, db)
-        assert result is user
-        assert db.commit_calls == 1
-        assert user in db.refreshed
-
-    @pytest.mark.asyncio
     @pytest.mark.it("✅  save with None does not refresh (new_record branch False)")
     async def test_save_without_record_does_not_refresh(self) -> None:
         db = FakeAsyncSession()
         db.commit_calls = 0
         db.refreshed.clear()
 
-        result = await AsyncBaseRepository.save(None, db)
+        result = await AsyncBaseRepository.save(db)
         assert result is None
         assert db.commit_calls == 1  # commit still happens
         assert db.refreshed == []  # no refresh when new_record is falsy

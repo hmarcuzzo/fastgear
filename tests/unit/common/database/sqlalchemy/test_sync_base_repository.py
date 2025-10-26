@@ -50,6 +50,12 @@ class FakeSyncSession:
             raise AssertionError("No queued execute() result for statement")
         return self._execute_queue.pop(0)
 
+    def scalar(self, stmt: Any) -> Any:
+        # Mirror SyncSession.scalar() by returning a scalar value from queued results
+        if not self._execute_queue:
+            raise AssertionError("No queued scalar() result for statement")
+        return self._execute_queue.pop(0).scalar()
+
     def delete(self, entity: Any) -> None:
         self.deleted.append(entity)
 
@@ -105,39 +111,13 @@ class TestSyncBaseRepository:
         assert entity in db.added
         assert db.flush_calls == 1
 
-    @pytest.mark.it("✅  save, commit_or_flush, and refresh_record behave correctly")
-    def test_save_and_refresh_record(self) -> None:
-        db = FakeSyncSession()
-        user = UserEntity(id="u1", name="X")
-
-        SyncBaseRepository.commit_or_flush(db)
-        assert db.commit_calls == 1
-        assert db.flush_calls == 0
-
-        with db.begin_nested():
-            SyncBaseRepository.commit_or_flush(db)
-        assert db.flush_calls == 1
-
-        db.refreshed.clear()
-        SyncBaseRepository.refresh_record(user, db)
-        SyncBaseRepository.refresh_record([user], db)
-        # Sync refresh_record currently only refreshes the single-entity path
-        assert db.refreshed.count(user) == 1
-
-        db.commit_calls = 0
-        db.refreshed.clear()
-        result = SyncBaseRepository.save(user, db)
-        assert result is user
-        assert db.commit_calls == 1
-        assert user in db.refreshed
-
     @pytest.mark.it("✅  save(None) commits but does not refresh anything")
     def test_save_without_record_does_not_refresh(self) -> None:
         db = FakeSyncSession()
         db.commit_calls = 0
         db.refreshed.clear()
 
-        result = SyncBaseRepository.save(None, db)
+        result = SyncBaseRepository.save(db)
         assert result is None
         assert db.commit_calls == 1
         assert db.refreshed == []

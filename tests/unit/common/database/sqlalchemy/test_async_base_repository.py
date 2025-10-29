@@ -644,7 +644,7 @@ class TestAsyncBaseRepository:
         monkeypatch.setattr(
             repo.repo_utils,
             "soft_delete_cascade_from_parent",
-            lambda entity, parent_entity_id, db=None: expected,  # noqa: ARG001
+            lambda entity, update_filter, db: expected,  # noqa: ARG005
         )
 
         res = await repo.soft_delete("U1", db)
@@ -667,15 +667,15 @@ class TestAsyncBaseRepository:
 
         called: dict[str, Any] = {}
 
-        def fake_soft_delete(entity, parent_entity_id, db=None):  # noqa: ANN001, ARG001
-            called["id"] = parent_entity_id
+        def fake_soft_delete(entity, update_filter, db):  # noqa: ARG001
+            called["filter"] = update_filter
             return {"raw": [], "affected": 0, "generated_maps": []}
 
         monkeypatch.setattr(repo.repo_utils, "soft_delete_cascade_from_parent", fake_soft_delete)
 
         res = await repo.soft_delete({"id": "ignored"}, db)
         assert res["affected"] == 0
-        assert called["id"] == "ID-7"
+        assert called["filter"] == {"id": "ignored"}
         assert db.commit_calls == 1
 
     @pytest.mark.asyncio
@@ -691,7 +691,7 @@ class TestAsyncBaseRepository:
         monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
 
         # Cause the inner function executed in run_sync to raise
-        def _raise(entity, parent_entity_id, db=None):  # noqa: ANN001, ARG001
+        def _raise(entity, update_filter, db=None):  # noqa: ANN001, ARG001
             raise RuntimeError("boom")
 
         monkeypatch.setattr(repo.repo_utils, "soft_delete_cascade_from_parent", _raise)

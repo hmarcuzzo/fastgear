@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import (
     ColumnElement,
@@ -10,12 +11,20 @@ from sqlalchemy import (
     exists,
     select,
     true,
-    update,
 )
+from sqlalchemy.orm import DeclarativeBase
 
+from fastgear.common.database.sqlalchemy.base import Base
+from fastgear.common.database.sqlalchemy.repository_utils.statement_constructor import (
+    StatementConstructor,
+)
 from fastgear.common.database.sqlalchemy.session import SyncSessionType
 from fastgear.types.generic_types_var import EntityType
+from fastgear.types.http_exceptions import NotFoundException
+from fastgear.types.update_options import UpdateOptions
 from fastgear.types.update_result import UpdateResult
+
+logger.bind(name="BaseRepositoryUtils")
 
 
 class BaseRepositoryUtils:
@@ -40,11 +49,11 @@ class BaseRepositoryUtils:
     def soft_delete_cascade_from_parent(
         entity: EntityType,
         *,
-        parent_entity_id: str,
+        update_filter: str | UpdateOptions,
         deleted_at_column="deleted_at",
         db: SyncSessionType,
     ) -> UpdateResult:
-        response = UpdateResult(raw=[], affected=0, generated_maps=[])
+        statement_constructor = StatementConstructor(entity)
 
         ts = datetime.now(UTC)
         parent_table: Table = entity.__table__
@@ -58,15 +67,30 @@ class BaseRepositoryUtils:
         parent_pks = list(parent_table.primary_key.columns)
         if len(parent_pks) != 1:
             raise ValueError("Composite primary keys are not supported")
-        pk_col = parent_pks[0]
 
-        result = db.execute(
-            update(parent_table)
-            .where(pk_col == parent_entity_id, parent_table.c[deleted_at_column].is_(None))
-            .values({deleted_at_column: ts})
-        )
-        response["affected"] += getattr(result, "rowcount", None)
-        response["raw"].append({"table": parent_table.name, "id": parent_entity_id})
+        if isinstance(update_filter, str):
+            update_filter = statement_constructor.build_where_from_id(update_filter, entity)
+        update_filter["where"].append(parent_table.c[deleted_at_column].is_(None))
+
+        payload = {deleted_at_column: ts}
+        cmp_params = {f"cmp_{k}": v for k, v in payload.items()}
+        params = {**payload, **cmp_params}
+        stmt = statement_constructor.build_update_statement(
+            update_filter, payload=payload
+        ).returning(entity)
+
+        result = db.execute(stmt, params)
+
+        objs = result.scalars().all()
+        affected = len(objs)
+
+        if not affected:
+            entity_name = entity.__name__
+            message = f'Could not find any entity of type "{entity_name}" that matches with the search filter'
+            logger.debug(message)
+            raise NotFoundException(message, [entity_name])
+
+        response = UpdateResult(raw=objs, affected=affected, generated_maps=[])
 
         frontier: set[Table] = {parent_table}
         visited: set[Table] = {parent_table}
@@ -94,18 +118,22 @@ class BaseRepositoryUtils:
                         .where(parent.c[deleted_at_column].is_not(None), fk_match)
                     )
 
-                    result = db.execute(
-                        update(child)
-                        .where(child.c[deleted_at_column].is_(None), exists_parent_marked)
-                        .values({deleted_at_column: ts})
-                    )
-                    # If rows were affected, we need to continue the cascade from this child table
-                    rowcount = getattr(result, "rowcount", None)
-                    if rowcount is None or rowcount > 0:
+                    child_cls = BaseRepositoryUtils.mapped_class_for_table(child, Base)
+                    stmt = statement_constructor.build_update_statement(
+                        {"where": [child.c[deleted_at_column].is_(None), exists_parent_marked]},
+                        payload=payload,
+                        new_entity=child_cls,
+                    ).returning(child_cls)
+                    result = db.execute(stmt, params)
+
+                    objs = result.scalars().all()
+                    affected = len(objs)
+
+                    if affected > 0:
                         next_frontier.add(child)
                         updated_tables.append(child.name)
-
-                        response["affected"] += result.rowcount
+                        response["affected"] += affected
+                        response["raw"].extend(objs)
 
                     visited.add(child)
 
@@ -136,3 +164,10 @@ class BaseRepositoryUtils:
             parent_col = elem.column
             conds.append(child_col == parent_col)
         return and_(*conds) if conds else true()
+
+    @staticmethod
+    def mapped_class_for_table(table: Table, base: type[DeclarativeBase]) -> type | None:
+        for mapper in base.registry.mappers:
+            if mapper.local_table is table or mapper.persist_selectable is table:
+                return mapper.class_
+        return None

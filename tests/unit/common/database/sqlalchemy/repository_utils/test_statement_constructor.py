@@ -8,8 +8,8 @@ from sqlalchemy import String as SAString
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from fastgear.common.database.sqlalchemy.repository_utils.select_constructor import (
-    SelectConstructor,
+from fastgear.common.database.sqlalchemy.repository_utils.statement_constructor import (
+    StatementConstructor,
 )
 from fastgear.types.pagination import Pagination
 
@@ -36,11 +36,11 @@ def _sql(stmt: Any) -> str:
     return str(stmt.compile(dialect=sqlite.dialect(), compile_kwargs={"literal_binds": True}))
 
 
-@pytest.mark.describe("🧪  SelectConstructor")
-class TestSelectConstructor:
+@pytest.mark.describe("🧪  StatementConstructor")
+class TestStatementConstructor:
     @pytest.mark.it("✅  build_select_statement with string criteria filters by primary key")
     def test_build_select_with_string_pk(self) -> None:
-        sc = SelectConstructor(Parent)
+        sc = StatementConstructor(Parent)
         stmt = sc.build_select_statement("1")
         sql = _sql(stmt)
         # Should select from parent_sc and include a WHERE on id
@@ -50,7 +50,7 @@ class TestSelectConstructor:
 
     @pytest.mark.it("✅  applies options: where/order_by/skip/take/relations/select/with_deleted")
     def test_apply_various_options(self) -> None:
-        sc = SelectConstructor(Parent)
+        sc = StatementConstructor(Parent)
         # Single where expression (not list) to exercise __fix_options_dict
         options: dict[str, Any] = {
             "where": Parent.name == "A",
@@ -71,13 +71,13 @@ class TestSelectConstructor:
 
     @pytest.mark.it("❌ unknown option key raises KeyError")
     def test_unknown_option_raises(self) -> None:
-        sc = SelectConstructor(Parent)
+        sc = StatementConstructor(Parent)
         with pytest.raises(KeyError, match="Unknown option: bad in FindOptions"):
             sc.build_select_statement({"bad": 1})  # type: ignore[arg-type]
 
     @pytest.mark.it("✅  build_options from Pagination maps search/sort/columns correctly")
     def test_build_options_from_pagination(self) -> None:
-        sc = SelectConstructor(Parent)
+        sc = StatementConstructor(Parent)
         # Two search groups: single and OR of two
         pagination = Pagination(
             skip=2,
@@ -113,7 +113,7 @@ class TestSelectConstructor:
 
     @pytest.mark.it("✅  build_select_statement with no options returns plain select")
     def test_build_select_without_options_returns_plain_select(self) -> None:
-        sc = SelectConstructor(Parent)
+        sc = StatementConstructor(Parent)
         # criteria None -> options_dict falsy -> early return branch
         stmt = sc.build_select_statement(None)
         sql = _sql(stmt)
@@ -125,7 +125,7 @@ class TestSelectConstructor:
 
     @pytest.mark.it("✅  build_options puts relationship fields into relations list")
     def test_build_options_relations_branch(self) -> None:
-        sc = SelectConstructor(Parent)
+        sc = StatementConstructor(Parent)
         pagination = Pagination(
             skip=1,
             take=5,
@@ -139,7 +139,7 @@ class TestSelectConstructor:
 
     @pytest.mark.it("✅  build_options skips empty search groups (if not clauses)")
     def test_build_options_skips_empty_search_groups(self) -> None:
-        sc = SelectConstructor(Parent)
+        sc = StatementConstructor(Parent)
         pagination = Pagination(
             skip=1,
             take=5,
@@ -157,5 +157,5 @@ class TestSelectConstructor:
     def test_extract_from_mapping_mixed(self) -> None:
         mapping = {"a": ["x", "y"], "b": "z"}
         fields = ["a", "b", "c"]  # 'c' not in mapping -> falls back to field itself
-        result = SelectConstructor.extract_from_mapping(mapping, fields)
+        result = StatementConstructor.extract_from_mapping(mapping, fields)
         assert result == ["x", "y", "z", "c"]

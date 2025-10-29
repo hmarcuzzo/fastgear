@@ -1,13 +1,9 @@
-from collections.abc import Iterator
-from dataclasses import dataclass
 from typing import Any
 
-import pytest
-from pydantic import BaseModel
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
 
-from fastgear.common.database.sqlalchemy.session import db_session
+from fastgear.common.database.sqlalchemy.base import Base
 
 
 class _Scalars:
@@ -76,9 +72,13 @@ class _ExecuteResult:
     def all(self) -> list[Any]:
         return list(self._all_rows or [])
 
+    def mappings(self):
+        return self
+
 
 # ---- Sample entity ----
-@dataclass
-class UserEntity:
-    id: str
-    name: str
+class UserEntity(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String)

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import (
     Select,
     func,
+    inspect,
     literal_column,
     select,
 )
@@ -22,6 +23,7 @@ from fastgear.types.find_one_options import FindOneOptions
 from fastgear.types.generic_types_var import EntityType
 from fastgear.types.http_exceptions import NotFoundException
 from fastgear.types.pagination import Pagination
+from fastgear.types.update_options import UpdateOptions
 from fastgear.types.update_result import UpdateResult
 
 
@@ -109,7 +111,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
             EntityType | None: The found record or None if no record matches the search filter.
 
         """
-        select_statement = self.select_constructor.build_select_statement(search_filter).limit(1)
+        select_statement = self.statement_constructor.build_select_statement(search_filter).limit(1)
         result = (await db.execute(select_statement)).scalars().first()
 
         return result if result else None
@@ -132,7 +134,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
             NotFoundException: If no record matches the search filter.
 
         """
-        select_statement = self.select_constructor.build_select_statement(search_filter).limit(2)
+        select_statement = self.statement_constructor.build_select_statement(search_filter).limit(2)
         try:
             return (await db.execute(select_statement)).scalar_one()
 
@@ -174,7 +176,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         self, options: FindManyOptions | dict | None, db: AsyncSessionType = None
     ) -> Sequence[EntityType]:
         """Implementation when stmt_or_filter is an instance of FindManyOptions."""
-        select_statement = self.select_constructor.build_select_statement(options)
+        select_statement = self.statement_constructor.build_select_statement(options)
         return await self.find(select_statement, db=db)  # Call the method registered for Select
 
     @find.register
@@ -204,7 +206,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
     @count.register
     async def _(self, options: FindManyOptions | dict | None, db: AsyncSessionType = None) -> int:
         """Implementation when stmt_or_filter is an instance of FindManyOptions."""
-        select_statement = self.select_constructor.build_select_statement(options)
+        select_statement = self.statement_constructor.build_select_statement(options)
         return await self.count(select_statement, db=db)
 
     @count.register
@@ -245,7 +247,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         self, search_filter: Pagination, db: AsyncSessionType = None
     ) -> tuple[Sequence[EntityType], int]:
         """Implementation when search_filter is an instance of Pagination."""
-        find_many_options = self.select_constructor.build_options(search_filter)
+        find_many_options = self.statement_constructor.build_options(search_filter)
         return await self.find_and_count(find_many_options, db)
 
     @find_and_count.register
@@ -253,7 +255,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         self, search_filter: FindManyOptions | dict | None, db: AsyncSessionType = None
     ) -> tuple[Sequence[EntityType], int]:
         """Implementation when search_filter is an instance of FindManyOptions."""
-        select_statement = self.select_constructor.build_select_statement(search_filter)
+        select_statement = self.statement_constructor.build_select_statement(search_filter)
         count = await self.count(select_statement, db)
         result = await self.find(select_statement, db)
 
@@ -261,15 +263,15 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
 
     async def update(
         self,
-        search_filter: str | FindOneOptions,
+        update_filter: str | UpdateOptions,
         model_data: BaseModel | dict,
         db: AsyncSessionType = None,
     ) -> UpdateResult:
         """Updates a record in the database that matches the given search filter with the provided model data.
 
         Args:
-            search_filter (str | FindOneOptions): The search filter to apply. It can be a string or an instance of
-                FindOneOptions.
+            update_filter (str | UpdateOptions): The search filter to apply. It can be a string or an instance of
+                UpdateOptions.
             model_data (BaseModel | dict): The data to update the record with. It can be an instance of BaseModel or
                 a dictionary.
             db (AsyncSessionType, optional): The database session. Defaults to None.
@@ -279,27 +281,29 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
                 records, and any generated maps.
 
         """
-        record = await self.find_one_or_fail(search_filter, db)
-
         if isinstance(model_data, BaseModel):
             model_data = model_data.model_dump(exclude_unset=True)
 
-        changes_made = False
-        for key, value in model_data.items():
-            current_value = getattr(record, key, None)
-            if current_value != value:
-                setattr(record, key, value)
-                changes_made = True
+        mapper = inspect(self.entity)
+        column_keys = {a.key for a in mapper.attrs if hasattr(a, "columns")}
+        payload = {k: v for k, v in model_data.items() if k in column_keys}
 
-        if changes_made:
-            await self.save(db)
-            await db.refresh(record)
+        if not payload:
+            return UpdateResult(raw=[], affected=0, generated_maps=[])
 
-        return UpdateResult(
-            raw=[record] if changes_made else [],
-            affected=1 if changes_made else 0,
-            generated_maps=[],
-        )
+        stmt = self.statement_constructor.build_update_statement(
+            update_filter, payload=payload
+        ).returning(self.entity)
+
+        cmp_params = {f"cmp_{k}": v for k, v in payload.items()}
+        params = {**payload, **cmp_params}
+        res = await db.execute(stmt, params)
+
+        await self.save(db)
+
+        objs = res.scalars().all()
+        affected = len(objs)
+        return UpdateResult(raw=objs, affected=affected, generated_maps=[])
 
     async def delete(
         self, delete_statement: str | FindOneOptions | ReturningDelete, db: AsyncSessionType = None
@@ -327,7 +331,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         return DeleteResult(raw=raw, affected=len(raw))
 
     async def soft_delete(
-        self, delete_statement: str | FindOneOptions, db: AsyncSessionType = None
+        self, delete_statement: str | UpdateOptions, db: AsyncSessionType = None
     ) -> UpdateResult:
         try:
             async with db.begin_nested():

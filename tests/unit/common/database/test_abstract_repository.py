@@ -69,8 +69,8 @@ class TestAbstractRepository:
 
         # basic attributes set in AbstractRepository.__init__
         assert repo.entity is DummyEntity
-        assert hasattr(repo, "select_constructor")
-        assert repo.select_constructor.entity is DummyEntity
+        assert hasattr(repo, "statement_constructor")
+        assert repo.statement_constructor.entity is DummyEntity
         assert isinstance(repo.repo_utils, BaseRepositoryUtils)
         assert repo.logger is not None
 

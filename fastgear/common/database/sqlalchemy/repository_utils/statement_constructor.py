@@ -1,4 +1,18 @@
-from sqlalchemy import BinaryExpression, Select, String, asc, desc, inspect, or_, select
+from typing import Any
+
+from sqlalchemy import (
+    BinaryExpression,
+    Select,
+    String,
+    Update,
+    asc,
+    bindparam,
+    desc,
+    inspect,
+    or_,
+    select,
+    update,
+)
 from sqlalchemy.orm import load_only, selectinload
 from sqlalchemy_utils import cast_if
 
@@ -6,9 +20,10 @@ from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.find_one_options import FindOneOptions
 from fastgear.types.generic_types_var import EntityType
 from fastgear.types.pagination import Pagination, PaginationSearch
+from fastgear.types.update_options import UpdateOptions
 
 
-class SelectConstructor:
+class StatementConstructor:
     def __init__(self, entity: EntityType) -> None:
         self.entity = entity
 
@@ -33,22 +48,22 @@ class SelectConstructor:
         entity = new_entity or self.entity
 
         if isinstance(criteria, str):
-            criteria = self.__generate_find_one_options_dict(criteria, entity)
+            criteria = self._build_where_from_id(criteria, entity)
 
-        select_statement = select(entity)
+        statement = select(entity)
 
-        return self.__apply_options(select_statement, entity, criteria)
+        return self._apply_select_options(statement, entity, criteria)
 
-    def __apply_options(
+    def _apply_select_options(
         self,
-        select_statement: Select,
+        statement: Select,
         entity: EntityType,
         options_dict: FindOneOptions | FindManyOptions = None,
     ) -> Select:
         """Applies various options to the given SQLAlchemy Select statement based on the provided option's dictionary.
 
         Args:
-            select_statement (Select): The initial SQLAlchemy Select statement to which options will be applied.
+            statement (Select): The initial SQLAlchemy Select statement to which options will be applied.
             entity (EntityType): The entity type associated with the select statement.
             options_dict (FindOneOptions | FindManyOptions, optional): A dictionary containing various options to be
                 applied to the select statement. Defaults to None.
@@ -58,32 +73,85 @@ class SelectConstructor:
 
         """
         if not options_dict:
-            return select_statement
+            return statement
 
-        options_dict = self.__fix_options_dict(options_dict)
+        options_dict = self._fix_options_dict(options_dict)
 
-        for key, item in options_dict.items():
+        for key, value in options_dict.items():
             match key:
                 case "select":
-                    select_statement = select_statement.options(load_only(*item, raiseload=True))
+                    statement = statement.options(load_only(*value, raiseload=True))
                 case "where":
-                    select_statement = select_statement.where(*item)
+                    statement = statement.where(*value)
                 case "order_by":
-                    select_statement = select_statement.order_by(*item)
+                    statement = statement.order_by(*value)
                 case "skip":
-                    select_statement = select_statement.offset(item)
+                    statement = statement.offset(value)
                 case "take":
-                    select_statement = select_statement.limit(item)
+                    statement = statement.limit(value)
                 case "relations":
-                    select_statement = select_statement.options(
-                        *[selectinload(getattr(entity, relation)) for relation in item]
+                    statement = statement.options(
+                        *[selectinload(getattr(entity, relation)) for relation in value]
                     )
                 case "with_deleted":
-                    select_statement = select_statement.execution_options(with_deleted=item)
+                    statement = statement.execution_options(with_deleted=value)
                 case _:
                     raise KeyError(f"Unknown option: {key} in FindOptions")
 
-        return select_statement
+        return statement
+
+    def build_update_statement(
+        self,
+        criteria: str | UpdateOptions = None,
+        *,
+        new_entity: EntityType = None,
+        payload: dict[str, Any],
+    ) -> Update:
+        entity = new_entity or self.entity
+
+        if isinstance(criteria, str):
+            criteria = self._build_where_from_id(criteria, entity)
+
+        diff_conditions = [
+            getattr(entity, k).is_distinct_from(bindparam(f"cmp_{k}")) for k in payload
+        ]
+
+        criteria["where"].append(or_(*diff_conditions))  # Only update if values are different
+
+        statement = update(entity)
+
+        statement = self._apply_update_options(statement, criteria)
+        return statement.values(**payload)
+
+    def _apply_update_options(
+        self,
+        statement: Update,
+        options_dict: UpdateOptions = None,
+    ) -> Update:
+        """Applies various options to the given SQLAlchemy Select statement based on the provided option's dictionary.
+
+        Args:
+            statement (Select): The initial SQLAlchemy Select statement to which options will be applied.
+            options_dict (UpdateOptions, optional): A dictionary containing various options to be
+                applied to the select statement. Defaults to None.
+
+        Returns:
+            Select: The modified SQLAlchemy Select statement with the applied options.
+
+        """
+        if not options_dict:
+            return statement
+
+        options_dict = self._fix_options_dict(options_dict)
+
+        for key, value in options_dict.items():
+            match key:
+                case "where":
+                    statement = statement.where(*value)
+                case _:
+                    raise KeyError(f"Unknown option: {key} in UpdateOptions")
+
+        return statement
 
     @staticmethod
     def extract_from_mapping(field_mapping: dict, fields: list) -> list:
@@ -108,13 +176,13 @@ class SelectConstructor:
         ]
 
     @staticmethod
-    def __fix_options_dict(
-        options_dict: FindOneOptions | FindManyOptions,
+    def _fix_options_dict(
+        options_dict: FindOneOptions | FindManyOptions | UpdateOptions,
     ) -> FindOneOptions | FindManyOptions:
         """Ensures that specific attributes in the options dictionary are lists.
 
         Args:
-            options_dict (FindOneOptions | FindManyOptions): The options dictionary to be fixed.
+            options_dict (FindOneOptions | FindManyOptions | UpdateOptions): The options dictionary to be fixed.
 
         Returns:
             FindOneOptions | FindManyOptions: The fixed options dictionary with specific attributes as lists.
@@ -127,15 +195,15 @@ class SelectConstructor:
         return options_dict
 
     @staticmethod
-    def __generate_find_one_options_dict(criteria: str, entity: EntityType) -> FindOneOptions:
-        """Generates a FindOneOptions dictionary based on the provided criteria and entity.
+    def _build_where_from_id(criteria: str, entity: EntityType) -> FindOneOptions | UpdateOptions:
+        """Generates a FindOneOptions or UpdateOptions dictionary based on the provided criteria and entity.
 
         Args:
             criteria (str): The criteria to filter the entity. Typically, this is the primary key value.
             entity (EntityType): The entity type for which the options dictionary is being generated.
 
         Returns:
-            FindOneOptions: A dictionary with a 'where' clause that filters the entity based on the primary key.
+            FindOneOptions | UpdateOptions: A dictionary containing the 'where' clause for filtering the entity.
 
         """
         return {"where": [inspect(entity).primary_key[0] == criteria]}

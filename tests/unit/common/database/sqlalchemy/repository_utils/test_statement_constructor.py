@@ -211,3 +211,197 @@ class TestStatementConstructor:
         options = {"where": [Parent.id == 1], "bad": "option"}  # type: ignore[dict-item]
         with pytest.raises(KeyError, match="Unknown option: bad in UpdateOptions"):
             sc.build_update_statement(options, payload=payload)
+
+    @pytest.mark.it(
+        "✅  _apply_update_options returns statement unchanged when options_dict is None"
+    )
+    def test_apply_update_options_with_none(self) -> None:
+        sc = StatementConstructor(Parent)
+        from sqlalchemy import update
+
+        stmt = update(Parent)
+        result = sc._apply_update_options(stmt, None)
+
+        assert result is stmt
+        sql = _sql(result)
+        assert "UPDATE parent_sc" in sql
+        assert "WHERE" not in sql
+
+    @pytest.mark.it(
+        "✅  _apply_update_options returns statement unchanged when options_dict is empty"
+    )
+    def test_apply_update_options_with_empty_dict(self) -> None:
+        sc = StatementConstructor(Parent)
+        from sqlalchemy import update
+
+        stmt = update(Parent)
+        result = sc._apply_update_options(stmt, {})
+
+        assert result is stmt
+        sql = _sql(result)
+        assert "UPDATE parent_sc" in sql
+        assert "WHERE" not in sql
+
+    @pytest.mark.it("✅  _apply_update_options applies where clause from options_dict")
+    def test_apply_update_options_with_where(self) -> None:
+        sc = StatementConstructor(Parent)
+        from sqlalchemy import update
+
+        stmt = update(Parent)
+        options = {"where": [Parent.id == 1, Parent.name == "Test"]}
+        result = sc._apply_update_options(stmt, options)
+
+        sql = _sql(result)
+        assert "UPDATE parent_sc" in sql
+        assert "WHERE" in sql
+        assert "parent_sc.id = 1" in sql
+        assert "parent_sc.name = 'Test'" in sql
+
+    @pytest.mark.it("✅  _apply_update_options fixes single where expression to list")
+    def test_apply_update_options_fixes_single_where(self) -> None:
+        sc = StatementConstructor(Parent)
+        from sqlalchemy import update
+
+        stmt = update(Parent)
+        options = {"where": Parent.id > 5}
+        result = sc._apply_update_options(stmt, options)
+
+        sql = _sql(result)
+        assert "UPDATE parent_sc" in sql
+        assert "WHERE" in sql
+        assert "parent_sc.id > 5" in sql
+
+    @pytest.mark.it("❌  _apply_update_options raises KeyError for unknown option")
+    def test_apply_update_options_unknown_option_raises(self) -> None:
+        sc = StatementConstructor(Parent)
+        from sqlalchemy import update
+
+        stmt = update(Parent)
+        options = {"where": [Parent.id == 1], "invalid_key": "value"}  # type: ignore[dict-item]
+
+        with pytest.raises(KeyError, match="Unknown option: invalid_key in UpdateOptions"):
+            sc._apply_update_options(stmt, options)
+
+    @pytest.mark.it("✅  build_delete_statement with DeleteOptions filters by where clause")
+    def test_build_delete_with_delete_options(self) -> None:
+        sc = StatementConstructor(Parent)
+        options = {"where": [Parent.id == 1]}
+        stmt = sc.build_delete_statement(options)
+        sql = _sql(stmt)
+        assert "DELETE FROM parent_sc" in sql
+        assert "WHERE" in sql
+        assert "parent_sc.id = 1" in sql
+
+    @pytest.mark.it("✅  build_delete_statement with string criteria filters by primary key")
+    def test_build_delete_with_string_pk(self) -> None:
+        sc = StatementConstructor(Parent)
+        stmt = sc.build_delete_statement("1")
+        sql = _sql(stmt)
+        assert "DELETE FROM parent_sc" in sql
+        assert "WHERE" in sql
+        assert "parent_sc.id =" in sql
+
+    @pytest.mark.it("✅  build_delete_statement with no criteria deletes all records")
+    def test_build_delete_without_criteria(self) -> None:
+        sc = StatementConstructor(Parent)
+        stmt = sc.build_delete_statement(None)
+        sql = _sql(stmt)
+        assert "DELETE FROM parent_sc" in sql
+        assert "WHERE" not in sql
+
+    @pytest.mark.it("✅  build_delete_statement with new_entity uses provided entity")
+    def test_build_delete_with_new_entity(self) -> None:
+        sc = StatementConstructor(Parent)
+        options = {"where": [Child.id == 1]}
+        stmt = sc.build_delete_statement(options, new_entity=Child)
+        sql = _sql(stmt)
+        assert "DELETE FROM child_sc" in sql
+        assert "child_sc.id = 1" in sql
+
+    @pytest.mark.it("✅  build_delete_statement with dict criteria does not convert to id filter")
+    def test_build_delete_with_dict_criteria_line_166_false(self) -> None:
+        sc = StatementConstructor(Parent)
+        options = {"where": [Parent.name == "ToDelete", Parent.id > 5]}
+        stmt = sc.build_delete_statement(options)
+        sql = _sql(stmt)
+        assert "DELETE FROM parent_sc" in sql
+        assert "WHERE" in sql
+        assert "parent_sc.name = 'ToDelete'" in sql
+        assert "parent_sc.id > 5" in sql
+
+    @pytest.mark.it("❌  build_delete_statement with unknown option raises KeyError")
+    def test_build_delete_with_unknown_option_raises(self) -> None:
+        sc = StatementConstructor(Parent)
+        options = {"where": [Parent.id == 1], "bad": "option"}  # type: ignore[dict-item]
+        with pytest.raises(KeyError, match="Unknown option: bad in UpdateOptions"):
+            sc.build_delete_statement(options)
+
+    @pytest.mark.it(
+        "✅  _apply_delete_options returns statement unchanged when options_dict is None"
+    )
+    def test_apply_delete_options_with_none(self) -> None:
+        sc = StatementConstructor(Parent)
+        from sqlalchemy import delete
+
+        stmt = delete(Parent)
+        result = sc._apply_delete_options(stmt, None)
+
+        assert result is stmt
+        sql = _sql(result)
+        assert "DELETE FROM parent_sc" in sql
+        assert "WHERE" not in sql
+
+    @pytest.mark.it(
+        "✅  _apply_delete_options returns statement unchanged when options_dict is empty"
+    )
+    def test_apply_delete_options_with_empty_dict(self) -> None:
+        sc = StatementConstructor(Parent)
+        from sqlalchemy import delete
+
+        stmt = delete(Parent)
+        result = sc._apply_delete_options(stmt, {})
+
+        assert result is stmt
+        sql = _sql(result)
+        assert "DELETE FROM parent_sc" in sql
+        assert "WHERE" not in sql
+
+    @pytest.mark.it("✅  _apply_delete_options applies where clause from options_dict")
+    def test_apply_delete_options_with_where(self) -> None:
+        sc = StatementConstructor(Parent)
+        from sqlalchemy import delete
+
+        stmt = delete(Parent)
+        options = {"where": [Parent.id == 1, Parent.name == "Test"]}
+        result = sc._apply_delete_options(stmt, options)
+
+        sql = _sql(result)
+        assert "DELETE FROM parent_sc" in sql
+        assert "WHERE" in sql
+        assert "parent_sc.id = 1" in sql
+        assert "parent_sc.name = 'Test'" in sql
+
+    @pytest.mark.it("✅  _apply_delete_options fixes single where expression to list")
+    def test_apply_delete_options_fixes_single_where(self) -> None:
+        sc = StatementConstructor(Parent)
+        from sqlalchemy import delete
+
+        stmt = delete(Parent)
+        options = {"where": Parent.id > 5}
+        result = sc._apply_delete_options(stmt, options)
+
+        sql = _sql(result)
+        assert "DELETE FROM parent_sc" in sql
+        assert "WHERE" in sql
+        assert "parent_sc.id > 5" in sql
+
+    @pytest.mark.it("❌  _apply_delete_options raises KeyError for unknown option")
+    def test_apply_delete_options_unknown_option_raises(self) -> None:
+        sc = StatementConstructor(Parent)
+        from sqlalchemy import delete
+
+        stmt = delete(Parent)
+        options = {"where": [Parent.id == 1], "invalid_key": "value"}  # type: ignore[dict-item]
+
+        with pytest.raises(KeyError, match="Unknown option: invalid_key in UpdateOptions"):
+            sc._apply_delete_options(stmt, options)

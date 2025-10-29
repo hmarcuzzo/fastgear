@@ -12,9 +12,8 @@ from sqlalchemy import (
     select,
     true,
 )
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import registry
 
-from fastgear.common.database.sqlalchemy.base import Base
 from fastgear.common.database.sqlalchemy.repository_utils.statement_constructor import (
     StatementConstructor,
 )
@@ -58,6 +57,7 @@ class BaseRepositoryUtils:
         ts = datetime.now(UTC)
         parent_table: Table = entity.__table__
         metadata = parent_table.metadata
+        registry = entity.registry
 
         if deleted_at_column not in parent_table.c:
             raise ValueError(
@@ -116,9 +116,9 @@ class BaseRepositoryUtils:
                         select(1)
                         .select_from(parent)
                         .where(parent.c[deleted_at_column].is_not(None), fk_match)
-                    )
+                    ).correlate(child)
 
-                    child_cls = BaseRepositoryUtils.mapped_class_for_table(child, Base)
+                    child_cls = BaseRepositoryUtils.mapped_class_for_table(child, registry)
                     stmt = statement_constructor.build_update_statement(
                         {"where": [child.c[deleted_at_column].is_(None), exists_parent_marked]},
                         payload=payload,
@@ -166,8 +166,8 @@ class BaseRepositoryUtils:
         return and_(*conds) if conds else true()
 
     @staticmethod
-    def mapped_class_for_table(table: Table, base: type[DeclarativeBase]) -> type | None:
-        for mapper in base.registry.mappers:
+    def mapped_class_for_table(table: Table, registry: registry) -> type | None:
+        for mapper in registry.mappers:
             if mapper.local_table is table or mapper.persist_selectable is table:
                 return mapper.class_
         return None

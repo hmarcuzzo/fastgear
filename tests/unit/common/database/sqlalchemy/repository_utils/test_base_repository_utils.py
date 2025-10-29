@@ -2,13 +2,65 @@ from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import DateTime, ForeignKey, Integer, String, select
-from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, mapped_column
 
 from fastgear.common.database.sqlalchemy.repository_utils.base_repository_utils import (
     BaseRepositoryUtils,
 )
+from fastgear.types.http_exceptions import NotFoundException
 from tests.fixtures.common.sqlalchemy_fixtures import UpdateSchema, engine
+
+Base = declarative_base()
+
+
+class Parent(Base):
+    __tablename__ = "parents"
+
+    id = mapped_column(Integer, primary_key=True)
+    name = mapped_column(String(50))
+    deleted_at = mapped_column(DateTime, nullable=True)
+
+
+class Child(Base):
+    __tablename__ = "children"
+
+    id = mapped_column(Integer, primary_key=True)
+    parent_id = mapped_column(Integer, ForeignKey("parents.id"))
+    name = mapped_column(String(50))
+    deleted_at = mapped_column(DateTime, nullable=True)
+
+
+class GrandChild(Base):
+    __tablename__ = "grandchildren"
+
+    id = mapped_column(Integer, primary_key=True)
+    child_id = mapped_column(Integer, ForeignKey("children.id"))
+    name = mapped_column(String(50))
+    deleted_at = mapped_column(DateTime, nullable=True)
+
+
+class ChildWithoutSoftDelete(Base):
+    __tablename__ = "children_no_soft_delete"
+
+    id = mapped_column(Integer, primary_key=True)
+    parent_id = mapped_column(Integer, ForeignKey("parents.id"))
+    name = mapped_column(String(50))
+
+
+class ParentWithoutSoftDelete(Base):
+    __tablename__ = "parents_no_soft_delete"
+
+    id = mapped_column(Integer, primary_key=True)
+    name = mapped_column(String(50))
+
+
+class ParentCompositeKey(Base):
+    __tablename__ = "parents_composite"
+
+    id1 = mapped_column(Integer, primary_key=True)
+    id2 = mapped_column(Integer, primary_key=True)
+    name = mapped_column(String(50))
+    deleted_at = mapped_column(DateTime, nullable=True)
 
 
 @pytest.mark.describe("🧪  BaseRepositoryUtils")
@@ -39,206 +91,351 @@ class TestBaseRepositoryUtils:
         schema = UpdateSchema(age=31)
         assert BaseRepositoryUtils.should_be_updated(Entity(), schema) is True
 
-    @pytest.mark.it(
-        "✅  soft_delete_cascade_from_parent soft-deletes parent and cascades to child tables with deleted_at column"
-    )
-    def test_cascade_soft_delete_happy_path(self, engine: Engine) -> None:
-        Base = declarative_base()
 
-        class Parent(Base):
-            __tablename__ = "parent"
-            id = mapped_column(Integer, primary_key=True)
-            name = mapped_column(String, nullable=False)
-            deleted_at = mapped_column(DateTime(timezone=True), nullable=True)
-
-        class ChildWithDeleted(Base):
-            __tablename__ = "child_with_deleted"
-            id = mapped_column(Integer, primary_key=True)
-            parent_id = mapped_column(ForeignKey("parent.id", ondelete="CASCADE"), nullable=False)
-            value = mapped_column(String, nullable=False)
-            deleted_at = mapped_column(DateTime(timezone=True), nullable=True)
-
-        class ChildNoDeleted(Base):
-            __tablename__ = "child_no_deleted"
-            id = mapped_column(Integer, primary_key=True)
-            parent_id = mapped_column(ForeignKey("parent.id", ondelete="CASCADE"), nullable=False)
-            value = mapped_column(String, nullable=False)
-            # intentionally no deleted_at column
-
+@pytest.mark.describe("🧪  BaseRepositoryUtils.soft_delete_cascade_from_parent")
+class TestSoftDeleteCascadeFromParent:
+    @pytest.fixture
+    def db_session(self, engine):
         Base.metadata.create_all(engine)
+        session = Session(engine)
+        yield session
+        session.close()
+        Base.metadata.drop_all(engine)
 
-        with Session(engine) as session:
-            session.add_all(
-                [
-                    Parent(id=1, name="p1", deleted_at=None),
-                    ChildWithDeleted(id=10, parent_id=1, value="c1", deleted_at=None),
-                    ChildWithDeleted(id=11, parent_id=1, value="c2", deleted_at=None),
-                    ChildNoDeleted(id=20, parent_id=1, value="n1"),
-                ]
-            )
-            session.commit()
-
-            # run
-            result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
-                Parent, parent_entity_id=1, db=session
+    @pytest.mark.it("✅  raises ValueError when parent entity has no deleted_at column")
+    def test_raises_when_no_deleted_at_column(self, db_session) -> None:
+        with pytest.raises(ValueError, match='has no "deleted_at" column'):
+            BaseRepositoryUtils.soft_delete_cascade_from_parent(
+                ParentWithoutSoftDelete,
+                update_filter="1",
+                db=db_session,
             )
 
-            # parent should be marked deleted
-            parent = session.execute(select(Parent).where(Parent.id == 1)).scalar_one()
-            assert parent.deleted_at is not None
-            assert isinstance(parent.deleted_at, datetime)
-
-            # children with deleted_at should be marked as well
-            rows = session.execute(select(ChildWithDeleted)).scalars().all()
-            assert all(r.deleted_at is not None for r in rows)
-            assert all(isinstance(r.deleted_at, datetime) for r in rows)
-
-            # child without deleted_at remains unchanged
-            no_del = session.execute(select(ChildNoDeleted)).scalars().all()
-            assert len(no_del) == 1
-
-            # response assertions
-            assert isinstance(result["affected"], int)
-            # 1 for parent + 2 for ChildWithDeleted rows
-            assert result["affected"] >= 3
-            assert {"table": "parent", "id": 1} in result["raw"]
-            # generated_maps contains the traversal order: starts with parent
-            assert "parent" in result["generated_maps"][0]
-            assert "child_with_deleted" in result["generated_maps"][0]
-
-    @pytest.mark.it(
-        "❌  soft_delete_cascade_from_parent raises when parent has no deleted_at column"
-    )
-    def test_raises_when_parent_missing_deleted_at(self, engine: Engine) -> None:
-        Base = declarative_base()
-
-        class ParentNoDeleted(Base):
-            __tablename__ = "parent_no_deleted"
-            id = mapped_column(Integer, primary_key=True)
-            name = mapped_column(String, nullable=False)
-            # no deleted_at
-
-        Base.metadata.create_all(engine)
-
-        with Session(engine) as session:
-            with pytest.raises(
-                ValueError, match='Parent entity "ParentNoDeleted" has no "deleted_at" column'
-            ) as exc:
-                BaseRepositoryUtils.soft_delete_cascade_from_parent(
-                    ParentNoDeleted, parent_entity_id=1, db=session
-                )
-            assert 'has no "deleted_at" column' in str(exc.value)
-
-    @pytest.mark.it(
-        "❌  soft_delete_cascade_from_parent raises when parent has composite primary key"
-    )
-    def test_raises_when_composite_primary_key(self, engine: Engine) -> None:
-        Base = declarative_base()
-
-        class ParentCompositePK(Base):
-            __tablename__ = "parent_composite_pk"
-            a_id = mapped_column(Integer, primary_key=True)
-            b_id = mapped_column(Integer, primary_key=True)
-            deleted_at = mapped_column(DateTime(timezone=True), nullable=True)
-
-        Base.metadata.create_all(engine)
-
-        with Session(engine) as session:
-            with pytest.raises(ValueError, match="Composite primary keys are not supported") as exc:
-                BaseRepositoryUtils.soft_delete_cascade_from_parent(
-                    ParentCompositePK, parent_entity_id="1", db=session
-                )
-            assert "Composite primary keys are not supported" in str(exc.value)
-
-    @pytest.mark.it(
-        "✅  soft_delete_cascade_from_parent skips re-processing the same child table when it appears multiple times (child in visited)"
-    )
-    def test_skips_child_already_visited_with_multiple_fks(self, engine: Engine) -> None:
-        Base = declarative_base()
-
-        class Parent(Base):
-            __tablename__ = "parent_multi_fk"
-            id = mapped_column(Integer, primary_key=True)
-            deleted_at = mapped_column(DateTime(timezone=True), nullable=True)
-
-        class ChildDoubleFK(Base):
-            __tablename__ = "child_double_fk"
-            id = mapped_column(Integer, primary_key=True)
-            parent_id1 = mapped_column(ForeignKey("parent_multi_fk.id"), nullable=False)
-            parent_id2 = mapped_column(ForeignKey("parent_multi_fk.id"), nullable=False)
-            deleted_at = mapped_column(DateTime(timezone=True), nullable=True)
-
-        Base.metadata.create_all(engine)
-
-        with Session(engine) as session:
-            session.add(Parent(id=1, deleted_at=None))
-            session.add(ChildDoubleFK(id=100, parent_id1=1, parent_id2=1, deleted_at=None))
-            session.commit()
-
-            result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
-                Parent, parent_entity_id=1, db=session
+    @pytest.mark.it("✅  raises ValueError when entity has composite primary key")
+    def test_raises_when_composite_primary_key(self, db_session) -> None:
+        with pytest.raises(ValueError, match="Composite primary keys are not supported"):
+            BaseRepositoryUtils.soft_delete_cascade_from_parent(
+                ParentCompositeKey,
+                update_filter="1",
+                db=db_session,
             )
 
-            # parent marked
-            parent = session.execute(select(Parent).where(Parent.id == 1)).scalar_one()
-            assert parent.deleted_at is not None
-
-            # child updated once, despite two FK edges
-            child = session.execute(
-                select(ChildDoubleFK).where(ChildDoubleFK.id == 100)
-            ).scalar_one()
-            assert child.deleted_at is not None
-
-            # affected should be exactly 2: 1 parent + 1 child
-            assert result["affected"] == 2
-
-            # child table name should appear only once in generated_maps
-            tables = result["generated_maps"][0]
-            assert tables.count("child_double_fk") == 1
-
-    @pytest.mark.it(
-        "✅  soft_delete_cascade_from_parent does not enqueue child when no rows were updated (rowcount == 0)"
-    )
-    def test_does_not_enqueue_child_when_rowcount_zero(self, engine: Engine) -> None:
-        Base = declarative_base()
-
-        class Parent(Base):
-            __tablename__ = "parent_rowcount_zero"
-            id = mapped_column(Integer, primary_key=True)
-            deleted_at = mapped_column(DateTime(timezone=True), nullable=True)
-
-        class ChildWithDeleted(Base):
-            __tablename__ = "child_with_deleted_zero"
-            id = mapped_column(Integer, primary_key=True)
-            parent_id = mapped_column(ForeignKey("parent_rowcount_zero.id"), nullable=False)
-            deleted_at = mapped_column(DateTime(timezone=True), nullable=True)
-
-        Base.metadata.create_all(engine)
-
-        with Session(engine) as session:
-            # Child already marked as deleted -> UPDATE matches zero rows
-            already = datetime.now(UTC)
-            session.add(Parent(id=1, deleted_at=None))
-            session.add(ChildWithDeleted(id=10, parent_id=1, deleted_at=already))
-            session.commit()
-
-            result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
-                Parent, parent_entity_id=1, db=session
+    @pytest.mark.it("✅  raises NotFoundException when no entity matches filter")
+    def test_raises_when_no_entity_found(self, db_session) -> None:
+        with pytest.raises(NotFoundException, match="Could not find any entity"):
+            BaseRepositoryUtils.soft_delete_cascade_from_parent(
+                Parent,
+                update_filter="999",
+                db=db_session,
             )
 
-            # Parent gets marked deleted
-            parent = session.execute(select(Parent).where(Parent.id == 1)).scalar_one()
-            assert parent.deleted_at is not None
+    @pytest.mark.it("✅  soft deletes parent entity by string id")
+    def test_soft_deletes_parent_by_id(self, db_session) -> None:
+        parent = Parent(id=1, name="Parent1")
+        db_session.add(parent)
+        db_session.commit()
 
-            # Child remains with its existing deleted_at and was not enqueued for next frontier
-            child = session.execute(
-                select(ChildWithDeleted).where(ChildWithDeleted.id == 10)
-            ).scalar_one()
-            assert child.deleted_at.replace(tzinfo=None) == already.replace(tzinfo=None)
+        result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
+            Parent,
+            update_filter="1",
+            db=db_session,
+        )
 
-            # Only 1 affected (the parent). Child update matched 0 rows -> rowcount == 0
-            assert result["affected"] == 1
+        assert result["affected"] == 1
+        assert len(result["raw"]) == 1
+        assert result["raw"][0].deleted_at is not None
 
-            # generated_maps should only contain the parent table name
-            tables = result["generated_maps"][0]
-            assert tables == ["parent_rowcount_zero"]
+        db_session.expire_all()
+        updated_parent = db_session.get(Parent, 1)
+        assert updated_parent.deleted_at is not None
+
+    @pytest.mark.it("✅  soft deletes parent entity by UpdateOptions filter")
+    def test_soft_deletes_parent_by_update_options(self, db_session) -> None:
+        parent = Parent(id=1, name="Parent1")
+        db_session.add(parent)
+        db_session.commit()
+
+        result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
+            Parent,
+            update_filter={"where": [Parent.name == "Parent1"]},
+            db=db_session,
+        )
+
+        assert result["affected"] == 1
+        db_session.expire_all()
+        updated_parent = db_session.get(Parent, 1)
+        assert updated_parent.deleted_at is not None
+
+    @pytest.mark.it("✅  does not soft delete already deleted parent")
+    def test_does_not_delete_already_deleted_parent(self, db_session) -> None:
+        parent = Parent(id=1, name="Parent1", deleted_at=datetime.now(UTC))
+        db_session.add(parent)
+        db_session.commit()
+
+        with pytest.raises(NotFoundException):
+            BaseRepositoryUtils.soft_delete_cascade_from_parent(
+                Parent,
+                update_filter="1",
+                db=db_session,
+            )
+
+    @pytest.mark.it("✅  cascades soft delete to direct children")
+    def test_cascades_to_direct_children(self, db_session) -> None:
+        parent = Parent(id=1, name="Parent1")
+        child1 = Child(id=1, parent_id=1, name="Child1")
+        child2 = Child(id=2, parent_id=1, name="Child2")
+
+        db_session.add_all([parent, child1, child2])
+        db_session.commit()
+
+        result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
+            Parent,
+            update_filter="1",
+            db=db_session,
+        )
+
+        assert result["affected"] == 3
+
+        db_session.expire_all()
+        updated_parent = db_session.get(Parent, 1)
+        updated_child1 = db_session.get(Child, 1)
+        updated_child2 = db_session.get(Child, 2)
+
+        assert updated_parent.deleted_at is not None
+        assert updated_child1.deleted_at is not None
+        assert updated_child2.deleted_at is not None
+
+    @pytest.mark.it("✅  cascades soft delete to multiple levels (grandchildren)")
+    def test_cascades_to_grandchildren(self, db_session) -> None:
+        parent = Parent(id=1, name="Parent1")
+        child = Child(id=1, parent_id=1, name="Child1")
+        grandchild1 = GrandChild(id=1, child_id=1, name="GrandChild1")
+        grandchild2 = GrandChild(id=2, child_id=1, name="GrandChild2")
+
+        db_session.add_all([parent, child, grandchild1, grandchild2])
+        db_session.commit()
+
+        result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
+            Parent,
+            update_filter="1",
+            db=db_session,
+        )
+
+        assert result["affected"] == 4
+
+        db_session.expire_all()
+        updated_parent = db_session.get(Parent, 1)
+        updated_child = db_session.get(Child, 1)
+        updated_grandchild1 = db_session.get(GrandChild, 1)
+        updated_grandchild2 = db_session.get(GrandChild, 2)
+
+        assert updated_parent.deleted_at is not None
+        assert updated_child.deleted_at is not None
+        assert updated_grandchild1.deleted_at is not None
+        assert updated_grandchild2.deleted_at is not None
+
+    @pytest.mark.it("✅  does not cascade to already soft deleted children")
+    def test_does_not_cascade_to_already_deleted_children(self, db_session) -> None:
+        parent = Parent(id=1, name="Parent1")
+        child = Child(id=1, parent_id=1, name="Child1", deleted_at=datetime.now(UTC))
+
+        db_session.add_all([parent, child])
+        db_session.commit()
+
+        result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
+            Parent,
+            update_filter="1",
+            db=db_session,
+        )
+
+        assert result["affected"] == 1
+
+        db_session.expire_all()
+        updated_parent = db_session.get(Parent, 1)
+        assert updated_parent.deleted_at is not None
+
+    @pytest.mark.it("✅  does not affect children of other parents")
+    def test_does_not_affect_other_parents_children(self, db_session) -> None:
+        parent1 = Parent(id=1, name="Parent1")
+        parent2 = Parent(id=2, name="Parent2")
+        child1 = Child(id=1, parent_id=1, name="Child1")
+        child2 = Child(id=2, parent_id=2, name="Child2")
+
+        db_session.add_all([parent1, parent2, child1, child2])
+        db_session.commit()
+
+        result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
+            Parent,
+            update_filter="1",
+            db=db_session,
+        )
+
+        assert result["affected"] == 2
+
+        db_session.expire_all()
+        updated_parent1 = db_session.get(Parent, 1)
+        updated_parent2 = db_session.get(Parent, 2)
+        updated_child1 = db_session.get(Child, 1)
+        updated_child2 = db_session.get(Child, 2)
+
+        assert updated_parent1.deleted_at is not None
+        assert updated_parent2.deleted_at is None
+        assert updated_child1.deleted_at is not None
+        assert updated_child2.deleted_at is None
+
+    @pytest.mark.it("✅  skips children tables without deleted_at column")
+    def test_skips_children_without_deleted_at(self, db_session) -> None:
+        parent = Parent(id=1, name="Parent1")
+        child_no_soft_delete = ChildWithoutSoftDelete(id=1, parent_id=1, name="Child1")
+
+        db_session.add_all([parent, child_no_soft_delete])
+        db_session.commit()
+
+        result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
+            Parent,
+            update_filter="1",
+            db=db_session,
+        )
+
+        assert result["affected"] == 1
+
+        db_session.expire_all()
+        updated_parent = db_session.get(Parent, 1)
+        updated_child = db_session.get(ChildWithoutSoftDelete, 1)
+
+        assert updated_parent.deleted_at is not None
+        assert updated_child is not None
+
+    @pytest.mark.it("✅  uses custom deleted_at_column parameter")
+    def test_uses_custom_deleted_at_column(self, db_session) -> None:
+        class CustomParent(Base):
+            __tablename__ = "custom_parents"
+
+            id = mapped_column(Integer, primary_key=True)
+            name = mapped_column(String(50))
+            removed_at = mapped_column(DateTime, nullable=True)
+
+        Base.metadata.create_all(db_session.bind)
+
+        parent = CustomParent(id=1, name="Parent1")
+        db_session.add(parent)
+        db_session.commit()
+
+        result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
+            CustomParent,
+            update_filter="1",
+            deleted_at_column="removed_at",
+            db=db_session,
+        )
+
+        assert result["affected"] == 1
+
+        db_session.expire_all()
+        updated_parent = db_session.get(CustomParent, 1)
+        assert updated_parent.removed_at is not None
+
+    @pytest.mark.it("✅  returns UpdateResult with correct structure")
+    def test_returns_correct_update_result_structure(self, db_session) -> None:
+        parent = Parent(id=1, name="Parent1")
+        child = Child(id=1, parent_id=1, name="Child1")
+
+        db_session.add_all([parent, child])
+        db_session.commit()
+
+        result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
+            Parent,
+            update_filter="1",
+            db=db_session,
+        )
+
+        assert "raw" in result
+        assert "affected" in result
+        assert "generated_maps" in result
+        assert isinstance(result["raw"], list)
+        assert isinstance(result["affected"], int)
+        assert isinstance(result["generated_maps"], list)
+        assert result["affected"] == 2
+        assert len(result["raw"]) == 2
+        assert len(result["generated_maps"]) > 0
+        assert result["generated_maps"][0] == ["parents", "children"]
+
+    @pytest.mark.it("✅  handles orphan table without mapped class gracefully")
+    def test_handles_orphan_table_without_mapped_class(self, db_session) -> None:
+        from sqlalchemy import Column, ForeignKeyConstraint, Table
+
+        parent = Parent(id=1, name="Parent1")
+        db_session.add(parent)
+        db_session.commit()
+
+        Table(
+            "orphan_child",
+            Base.metadata,
+            Column("id", Integer, primary_key=True),
+            Column("parent_id", Integer),
+            Column("deleted_at", DateTime, nullable=True),
+            ForeignKeyConstraint(["parent_id"], ["parents.id"]),
+        )
+        Base.metadata.create_all(db_session.bind)
+
+        result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
+            Parent,
+            update_filter="1",
+            db=db_session,
+        )
+
+        assert result["affected"] == 1
+        db_session.expire_all()
+        updated_parent = db_session.get(Parent, 1)
+        assert updated_parent.deleted_at is not None
+
+    @pytest.mark.it("✅  skips already visited child tables in cascade")
+    def test_skips_already_visited_children(self, db_session) -> None:
+        class MultiParent1(Base):
+            __tablename__ = "multi_parent1"
+
+            id = mapped_column(Integer, primary_key=True)
+            name = mapped_column(String(50))
+            deleted_at = mapped_column(DateTime, nullable=True)
+
+        class MultiParent2(Base):
+            __tablename__ = "multi_parent2"
+
+            id = mapped_column(Integer, primary_key=True)
+            multi_parent1_id = mapped_column(Integer, ForeignKey("multi_parent1.id"))
+            name = mapped_column(String(50))
+            deleted_at = mapped_column(DateTime, nullable=True)
+
+        class SharedChild(Base):
+            __tablename__ = "shared_child"
+
+            id = mapped_column(Integer, primary_key=True)
+            multi_parent1_id = mapped_column(Integer, ForeignKey("multi_parent1.id"))
+            multi_parent2_id = mapped_column(Integer, ForeignKey("multi_parent2.id"))
+            name = mapped_column(String(50))
+            deleted_at = mapped_column(DateTime, nullable=True)
+
+        Base.metadata.create_all(db_session.bind)
+
+        multi_parent1 = MultiParent1(id=1, name="MultiParent1")
+        multi_parent2 = MultiParent2(id=1, multi_parent1_id=1, name="MultiParent2")
+        shared_child = SharedChild(id=1, multi_parent1_id=1, multi_parent2_id=1, name="SharedChild")
+
+        db_session.add_all([multi_parent1, multi_parent2, shared_child])
+        db_session.commit()
+
+        result = BaseRepositoryUtils.soft_delete_cascade_from_parent(
+            MultiParent1,
+            update_filter="1",
+            db=db_session,
+        )
+
+        assert result["affected"] == 3
+
+        db_session.expire_all()
+        updated_multi_parent1 = db_session.get(MultiParent1, 1)
+        updated_multi_parent2 = db_session.get(MultiParent2, 1)
+        updated_shared_child = db_session.get(SharedChild, 1)
+
+        assert updated_multi_parent1.deleted_at is not None
+        assert updated_multi_parent2.deleted_at is not None
+        assert updated_shared_child.deleted_at is not None

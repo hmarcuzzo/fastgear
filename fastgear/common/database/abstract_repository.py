@@ -8,8 +8,8 @@ from pydantic import BaseModel
 from fastgear.common.database.sqlalchemy.repository_utils.base_repository_utils import (
     BaseRepositoryUtils,
 )
-from fastgear.common.database.sqlalchemy.repository_utils.select_constructor import (
-    SelectConstructor,
+from fastgear.common.database.sqlalchemy.repository_utils.statement_constructor import (
+    StatementConstructor,
 )
 from fastgear.types.delete_result import DeleteResult
 from fastgear.types.find_many_options import FindManyOptions
@@ -24,7 +24,7 @@ SessionType = TypeVar("SessionType")
 class AbstractRepository(ABC, Generic[EntityType]):
     def __init__(self, entity: type[EntityType]) -> None:
         self.entity = entity
-        self.select_constructor = SelectConstructor(entity)
+        self.statement_constructor = StatementConstructor(entity)
         self.repo_utils = BaseRepositoryUtils()
 
         self.logger = logger.bind(name=self.__class__.__module__)

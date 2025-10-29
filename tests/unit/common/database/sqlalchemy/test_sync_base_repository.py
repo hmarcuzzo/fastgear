@@ -45,10 +45,16 @@ class FakeSyncSession:
     def refresh(self, entity: Any) -> None:
         self.refreshed.append(entity)
 
-    def execute(self, stmt: Any) -> _ExecuteResult:
+    def execute(
+        self, stmt: Any, params: Any = None, *, execution_options: dict | None = None
+    ) -> _ExecuteResult:
         if not self._execute_queue:
             raise AssertionError("No queued execute() result for statement")
-        return self._execute_queue.pop(0)
+        res = self._execute_queue.pop(0)
+        setattr(res, "last_stmt", stmt)
+        setattr(res, "last_params", params)
+        setattr(res, "last_execution_options", execution_options)
+        return res
 
     def scalar(self, stmt: Any) -> Any:
         # Mirror SyncSession.scalar() by returning a scalar value from queued results
@@ -153,7 +159,7 @@ class TestSyncBaseRepository:
             called["arg"] = stmt_or_filter
             return Select()
 
-        monkeypatch.setattr(repo.select_constructor, "build_select_statement", fake_build)
+        monkeypatch.setattr(repo.statement_constructor, "build_select_statement", fake_build)
         res = repo.find({"any": 1}, db)
         assert res == users
         assert called["arg"] == {"any": 1}
@@ -191,7 +197,7 @@ class TestSyncBaseRepository:
         db.queue_execute(_ExecuteResult(count=5))
 
         monkeypatch.setattr(
-            repo.select_constructor,
+            repo.statement_constructor,
             "build_select_statement",
             lambda opts: Select(),
         )
@@ -208,12 +214,12 @@ class TestSyncBaseRepository:
         )
 
         monkeypatch.setattr(
-            repo.select_constructor,
+            repo.statement_constructor,
             "build_options",
             lambda pagination: {"limit": 10, "offset": 0},
         )
         monkeypatch.setattr(
-            repo.select_constructor,
+            repo.statement_constructor,
             "build_select_statement",
             lambda opts: Select(),
         )
@@ -237,41 +243,346 @@ class TestSyncBaseRepository:
         repo = UserRepo()
         db = FakeSyncSession()
 
-        user = UserEntity(id="1", name="Alice")
+        class FakeStmt:
+            def returning(self, entity):
+                return self
 
-        def _fake_find_one_or_fail(filt, db=None):
-            return user
+        monkeypatch.setattr(
+            repo.statement_constructor,
+            "build_update_statement",
+            lambda f, payload: FakeStmt(),
+        )
 
-        monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
-
-        result = repo.update("1", {"name": "Alice"}, db)
+        # No change -> empty payload returns early
+        result = repo.update("1", {"invalid_field": "value"}, db)
         assert result["affected"] == 0
         assert db.commit_calls == 0
 
+        # With valid change -> affected 1
+        updated_user = UserEntity(id="1", name="Bob")
+        db.queue_execute(_ExecuteResult(scalars=[updated_user]))
+
         result = repo.update("1", {"name": "Bob"}, db)
-        assert user.name == "Bob"
         assert result["affected"] == 1
-        assert result["raw"] == [user]
+        assert result["raw"] == [updated_user]
         assert db.commit_calls == 1
 
     @pytest.mark.it("✅  update accepts Pydantic BaseModel and updates fields accordingly")
     def test_update_with_base_model(self, monkeypatch: pytest.MonkeyPatch) -> None:
         repo = UserRepo()
         db = FakeSyncSession()
-        user = UserEntity(id="3", name="Start")
 
-        def _fake_find_one_or_fail(filt, db=None):
-            return user
+        updated_user = UserEntity(id="3", name="Changed")
+        db.queue_execute(_ExecuteResult(scalars=[updated_user]))
+
+        class FakeStmt:
+            def returning(self, entity):
+                return self
 
         class UpdateModel(BaseModel):
             name: str
 
-        monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
+        monkeypatch.setattr(
+            repo.statement_constructor,
+            "build_update_statement",
+            lambda f, payload: FakeStmt(),
+        )
 
         result = repo.update("3", UpdateModel(name="Changed"), db)
-        assert user.name == "Changed"
         assert result["affected"] == 1
         assert db.commit_calls == 1
+
+    @pytest.mark.it("✅  update with dict payload executes statement and returns result")
+    def test_update_with_dict(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        repo = UserRepo()
+        db = FakeSyncSession()
+
+        updated_user = UserEntity(id="1", name="Updated")
+        db.queue_execute(_ExecuteResult(scalars=[updated_user]))
+
+        class FakeStmt:
+            def returning(self, entity):
+                return self
+
+        called = {}
+
+        def fake_build_update(filter_val, payload):
+            called["filter"] = filter_val
+            called["payload"] = payload
+            return FakeStmt()
+
+        monkeypatch.setattr(
+            repo.statement_constructor,
+            "build_update_statement",
+            fake_build_update,
+        )
+
+        result = repo.update("1", {"name": "Updated"}, db)
+
+        assert result["affected"] == 1
+        assert result["raw"] == [updated_user]
+        assert result["generated_maps"] == []
+        assert called["filter"] == "1"
+        assert called["payload"] == {"name": "Updated"}
+        assert db.flush_calls == 1 or db.commit_calls == 1
+
+    @pytest.mark.it("✅  update with BaseModel converts to dict using model_dump")
+    def test_update_with_base_model_conversion(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        repo = UserRepo()
+        db = FakeSyncSession()
+
+        updated_user = UserEntity(id="2", name="FromModel")
+        db.queue_execute(_ExecuteResult(scalars=[updated_user]))
+
+        class FakeStmt:
+            def returning(self, entity):
+                return self
+
+        called = {}
+
+        def fake_build_update(filter_val, payload):
+            called["payload"] = payload
+            return FakeStmt()
+
+        monkeypatch.setattr(
+            repo.statement_constructor,
+            "build_update_statement",
+            fake_build_update,
+        )
+
+        class UpdateModel(BaseModel):
+            name: str
+            extra_field: str = "ignored"
+
+        model = UpdateModel(name="FromModel")
+        result = repo.update("2", model, db)
+
+        assert result["affected"] == 1
+        assert called["payload"] == {"name": "FromModel"}
+
+    @pytest.mark.it("✅  update filters out non-column fields from payload")
+    def test_update_filters_non_columns(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        repo = UserRepo()
+        db = FakeSyncSession()
+
+        updated_user = UserEntity(id="3", name="ValidField")
+        db.queue_execute(_ExecuteResult(scalars=[updated_user]))
+
+        class FakeStmt:
+            def returning(self, entity):
+                return self
+
+        called = {}
+
+        def fake_build_update(filter_val, payload):
+            called["payload"] = payload
+            return FakeStmt()
+
+        monkeypatch.setattr(
+            repo.statement_constructor,
+            "build_update_statement",
+            fake_build_update,
+        )
+
+        payload_with_invalid = {
+            "name": "ValidField",
+            "invalid_column": "should_be_filtered",
+            "another_invalid": 123,
+        }
+
+        repo.update("3", payload_with_invalid, db)
+
+        assert called["payload"] == {"name": "ValidField"}
+        assert "invalid_column" not in called["payload"]
+        assert "another_invalid" not in called["payload"]
+
+    @pytest.mark.it("✅  update returns empty result when payload has no valid columns")
+    def test_update_empty_payload(self) -> None:
+        repo = UserRepo()
+        db = FakeSyncSession()
+
+        result = repo.update("4", {"invalid_field": "value"}, db)
+
+        assert result["affected"] == 0
+        assert result["raw"] == []
+        assert result["generated_maps"] == []
+        assert db.flush_calls == 0
+        assert db.commit_calls == 0
+
+    @pytest.mark.it("✅  update returns empty result when payload is empty dict")
+    def test_update_completely_empty_payload(self) -> None:
+        repo = UserRepo()
+        db = FakeSyncSession()
+
+        result = repo.update("5", {}, db)
+
+        assert result["affected"] == 0
+        assert result["raw"] == []
+        assert result["generated_maps"] == []
+
+    @pytest.mark.it("✅  update prepares cmp_params correctly")
+    def test_update_params_preparation(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        repo = UserRepo()
+        db = FakeSyncSession()
+
+        updated_user = UserEntity(id="6", name="Test")
+
+        class FakeStmt:
+            def returning(self, entity):
+                return self
+
+        monkeypatch.setattr(
+            repo.statement_constructor,
+            "build_update_statement",
+            lambda f, payload: FakeStmt(),
+        )
+
+        execute_params = {}
+        original_execute = db.execute
+
+        def capture_execute(stmt, params=None, **kwargs):
+            execute_params["captured"] = params
+            db.queue_execute(_ExecuteResult(scalars=[updated_user]))
+            return original_execute(stmt, params, **kwargs)
+
+        db.execute = capture_execute
+
+        repo.update("6", {"name": "Test", "id": "6"}, db)
+
+        assert "captured" in execute_params
+        params = execute_params["captured"]
+        assert params["name"] == "Test"
+        assert params["id"] == "6"
+        assert params["cmp_name"] == "Test"
+        assert params["cmp_id"] == "6"
+
+    @pytest.mark.it("✅  update returns multiple affected rows when statement matches multiple")
+    def test_update_multiple_rows(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        repo = UserRepo()
+        db = FakeSyncSession()
+
+        users = [
+            UserEntity(id="7", name="Bulk1"),
+            UserEntity(id="8", name="Bulk1"),
+            UserEntity(id="9", name="Bulk1"),
+        ]
+        db.queue_execute(_ExecuteResult(scalars=users))
+
+        class FakeStmt:
+            def returning(self, entity):
+                return self
+
+        monkeypatch.setattr(
+            repo.statement_constructor,
+            "build_update_statement",
+            lambda f, payload: FakeStmt(),
+        )
+
+        result = repo.update({"name": "OldName"}, {"name": "Bulk1"}, db)
+
+        assert result["affected"] == 3
+        assert len(result["raw"]) == 3
+        assert result["raw"] == users
+
+    @pytest.mark.it("✅  update works with UpdateOptions filter")
+    def test_update_with_update_options(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        repo = UserRepo()
+        db = FakeSyncSession()
+
+        updated_user = UserEntity(id="10", name="WithOptions")
+        db.queue_execute(_ExecuteResult(scalars=[updated_user]))
+
+        class FakeStmt:
+            def returning(self, entity):
+                return self
+
+        from fastgear.types.update_options import UpdateOptions
+
+        called = {}
+
+        def fake_build_update(filter_val, payload):
+            called["filter"] = filter_val
+            return FakeStmt()
+
+        monkeypatch.setattr(
+            repo.statement_constructor,
+            "build_update_statement",
+            fake_build_update,
+        )
+
+        options = UpdateOptions(where={"id": "10"})
+        result = repo.update(options, {"name": "WithOptions"}, db)
+
+        assert result["affected"] == 1
+        assert isinstance(called["filter"], dict)
+        assert "where" in called["filter"]
+        assert called["filter"]["where"] == {"id": "10"}
+
+    @pytest.mark.it("✅  update calls save after executing statement")
+    def test_update_calls_save(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        repo = UserRepo()
+        db = FakeSyncSession()
+
+        updated_user = UserEntity(id="11", name="SaveTest")
+        db.queue_execute(_ExecuteResult(scalars=[updated_user]))
+
+        class FakeStmt:
+            def returning(self, entity):
+                return self
+
+        monkeypatch.setattr(
+            repo.statement_constructor,
+            "build_update_statement",
+            lambda f, payload: FakeStmt(),
+        )
+
+        save_called = {"count": 0}
+        original_save = repo.save
+
+        def track_save(db=None):
+            save_called["count"] += 1
+            return original_save(db)
+
+        monkeypatch.setattr(repo, "save", track_save)
+
+        repo.update("11", {"name": "SaveTest"}, db)
+
+        assert save_called["count"] == 1
+
+    @pytest.mark.it("✅  update with BaseModel exclude_unset works correctly")
+    def test_update_base_model_exclude_unset(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        repo = UserRepo()
+        db = FakeSyncSession()
+
+        updated_user = UserEntity(id="12", name="Partial")
+        db.queue_execute(_ExecuteResult(scalars=[updated_user]))
+
+        class FakeStmt:
+            def returning(self, entity):
+                return self
+
+        called = {}
+
+        def fake_build_update(filter_val, payload):
+            called["payload"] = payload
+            return FakeStmt()
+
+        monkeypatch.setattr(
+            repo.statement_constructor,
+            "build_update_statement",
+            fake_build_update,
+        )
+
+        class UpdateModel(BaseModel):
+            name: str | None = None
+            id: str | None = None
+
+        model = UpdateModel(name="Partial")
+        result = repo.update("12", model, db)
+
+        assert "name" in called["payload"]
+        assert "id" not in called["payload"]
+        assert result["affected"] == 1
 
     @pytest.mark.it("✅  delete with Delete statement executes deletion correctly")
     def test_delete_with_delete_statement(self) -> None:
@@ -310,7 +621,7 @@ class TestSyncBaseRepository:
         db = FakeSyncSession()
         db.queue_execute(_ExecuteResult(first=None))
         monkeypatch.setattr(
-            repo.select_constructor,
+            repo.statement_constructor,
             "build_select_statement",
             lambda f: Select(),
         )
@@ -404,7 +715,7 @@ class TestSyncBaseRepository:
         db = FakeSyncSession()
         # Ensure build_select_statement returns a bare Select so .limit(2) works
         monkeypatch.setattr(
-            repo.select_constructor,
+            repo.statement_constructor,
             "build_select_statement",
             lambda f: Select(),  # noqa: ARG005
         )

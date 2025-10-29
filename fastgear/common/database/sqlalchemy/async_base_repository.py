@@ -331,16 +331,14 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         return DeleteResult(raw=raw, affected=len(raw))
 
     async def soft_delete(
-        self, delete_statement: str | UpdateOptions, db: AsyncSessionType = None
+        self, update_filter: str | UpdateOptions, db: AsyncSessionType = None
     ) -> UpdateResult:
         try:
             async with db.begin_nested():
-                parent_entity_id = (await self.find_one_or_fail(delete_statement, db)).id
-
                 response = await db.run_sync(
                     lambda sync_db: self.repo_utils.soft_delete_cascade_from_parent(
                         self.entity,
-                        parent_entity_id=parent_entity_id,
+                        update_filter=update_filter,
                         db=sync_db,
                     )
                 )

@@ -85,7 +85,6 @@ ignore = [
     "F811",
     "G004",
     "PLC0415",
-    "PLR0913",
     "PERF203",
     "PGH003",
     "N818",
@@ -96,6 +95,7 @@ ignore = [
     "D",
     "EM",
     "RUF",
+    "PLR",
     "S",
     "TD",
     "TRY"

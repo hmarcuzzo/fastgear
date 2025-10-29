@@ -48,7 +48,7 @@ class StatementConstructor:
         entity = new_entity or self.entity
 
         if isinstance(criteria, str):
-            criteria = self._build_where_from_id(criteria, entity)
+            criteria = self.build_where_from_id(criteria, entity)
 
         statement = select(entity)
 
@@ -107,10 +107,10 @@ class StatementConstructor:
         new_entity: EntityType = None,
         payload: dict[str, Any],
     ) -> Update:
-        entity = new_entity or self.entity
+        entity = new_entity if new_entity is not None else self.entity
 
         if isinstance(criteria, str):
-            criteria = self._build_where_from_id(criteria, entity)
+            criteria = self.build_where_from_id(criteria, entity)
 
         diff_conditions = [
             getattr(entity, k).is_distinct_from(bindparam(f"cmp_{k}")) for k in payload
@@ -195,7 +195,7 @@ class StatementConstructor:
         return options_dict
 
     @staticmethod
-    def _build_where_from_id(criteria: str, entity: EntityType) -> FindOneOptions | UpdateOptions:
+    def build_where_from_id(criteria: str, entity: EntityType) -> FindOneOptions | UpdateOptions:
         """Generates a FindOneOptions or UpdateOptions dictionary based on the provided criteria and entity.
 
         Args:

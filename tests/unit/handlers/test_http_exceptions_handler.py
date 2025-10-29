@@ -9,7 +9,7 @@ from starlette.exceptions import HTTPException
 from starlette.status import (
     HTTP_200_OK,
     HTTP_404_NOT_FOUND,
-    HTTP_422_UNPROCESSABLE_ENTITY,
+    HTTP_422_UNPROCESSABLE_CONTENT,
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
@@ -58,11 +58,11 @@ class TestHttpExceptionsHandler:
             return {"ok": True}
 
         resp = await async_client.post("/items", json={"qty": "not-an-int"})
-        assert resp.status_code == HTTP_422_UNPROCESSABLE_ENTITY
+        assert resp.status_code == HTTP_422_UNPROCESSABLE_CONTENT
 
         # top-level envelope produced by global_exception_error_message(...)
         data = resp.json()
-        assert data["status_code"] == HTTP_422_UNPROCESSABLE_ENTITY
+        assert data["status_code"] == HTTP_422_UNPROCESSABLE_CONTENT
         assert data["path"] == "/items"
         assert data["method"] == "POST"
         assert "timestamp" in data
@@ -127,7 +127,7 @@ class TestHttpExceptionsHandler:
         )
 
         # Assert top-level fields
-        assert result.status_code == HTTP_422_UNPROCESSABLE_ENTITY
+        assert result.status_code == HTTP_422_UNPROCESSABLE_CONTENT
         assert result.path == "/test"
         assert result.method == "GET"
         assert isinstance(result.timestamp, datetime)
@@ -143,7 +143,7 @@ class TestHttpExceptionsHandler:
 
         # Assert dict conversion
         as_dict = result.model_dump()
-        assert as_dict["status_code"] == HTTP_422_UNPROCESSABLE_ENTITY
+        assert as_dict["status_code"] == HTTP_422_UNPROCESSABLE_CONTENT
         assert as_dict["path"] == "/test"
         assert as_dict["method"] == "GET"
         assert isinstance(as_dict["detail"], list)

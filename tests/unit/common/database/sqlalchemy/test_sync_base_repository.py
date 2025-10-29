@@ -602,17 +602,14 @@ class TestSyncBaseRepository:
     def test_delete_with_id(self, monkeypatch: pytest.MonkeyPatch) -> None:
         repo = UserRepo()
         db = FakeSyncSession()
+
+        # Queue result for the DELETE...RETURNING statement
         user = UserEntity(id="del1", name="Z")
-
-        def _fake_find_one_or_fail(stmt, db=None):
-            return user
-
-        monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
+        db.queue_execute(_ExecuteResult(scalars=[user]))
 
         res = repo.delete("del1", db)
-        assert res["raw"] == ["del1"]
+        assert res["raw"] == [user]
         assert res["affected"] == 1
-        assert user in db.deleted
         assert db.commit_calls == 1
 
     @pytest.mark.it("✅  find_one and find_one_or_fail behave correctly")
@@ -671,12 +668,7 @@ class TestSyncBaseRepository:
         repo = UserRepo()
         db = FakeSyncSession()
 
-        user = UserEntity(id="ID-7", name="T")
-
-        def _fake_find_one_or_fail(f, db=None):
-            return user
-
-        monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
+        UserEntity(id="ID-7", name="T")
 
         called: dict[str, Any] = {}
 

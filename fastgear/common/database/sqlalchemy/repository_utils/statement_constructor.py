@@ -2,11 +2,13 @@ from typing import Any
 
 from sqlalchemy import (
     BinaryExpression,
+    Delete,
     Select,
     String,
     Update,
     asc,
     bindparam,
+    delete,
     desc,
     inspect,
     or_,
@@ -16,6 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import load_only, selectinload
 from sqlalchemy_utils import cast_if
 
+from fastgear.types.delete_options import DeleteOptions
 from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.find_one_options import FindOneOptions
 from fastgear.types.generic_types_var import EntityType
@@ -45,7 +48,7 @@ class StatementConstructor:
             Select: The constructed SQLAlchemy Select statement.
 
         """
-        entity = new_entity or self.entity
+        entity = new_entity if new_entity is not None else self.entity
 
         if isinstance(criteria, str):
             criteria = self.build_where_from_id(criteria, entity)
@@ -131,13 +134,56 @@ class StatementConstructor:
         """Applies various options to the given SQLAlchemy Select statement based on the provided option's dictionary.
 
         Args:
-            statement (Select): The initial SQLAlchemy Select statement to which options will be applied.
+            statement (Update): The initial SQLAlchemy Select statement to which options will be applied.
             options_dict (UpdateOptions, optional): A dictionary containing various options to be
-                applied to the select statement. Defaults to None.
+                applied to the update statement. Defaults to None.
 
         Returns:
-            Select: The modified SQLAlchemy Select statement with the applied options.
+            Update: The modified SQLAlchemy Select statement with the applied options.
+        """
+        if not options_dict:
+            return statement
 
+        options_dict = self._fix_options_dict(options_dict)
+
+        for key, value in options_dict.items():
+            match key:
+                case "where":
+                    statement = statement.where(*value)
+                case _:
+                    raise KeyError(f"Unknown option: {key} in UpdateOptions")
+
+        return statement
+
+    def build_delete_statement(
+        self,
+        criteria: str | DeleteOptions = None,
+        *,
+        new_entity: EntityType = None,
+    ) -> Update:
+        entity = new_entity if new_entity is not None else self.entity
+
+        if isinstance(criteria, str):
+            criteria = self.build_where_from_id(criteria, entity)
+
+        statement = delete(entity)
+
+        return self._apply_delete_options(statement, criteria)
+
+    def _apply_delete_options(
+        self,
+        statement: Delete,
+        options_dict: DeleteOptions = None,
+    ) -> Delete:
+        """Applies various options to the given SQLAlchemy Select statement based on the provided option's dictionary.
+
+        Args:
+            statement (Delete): The initial SQLAlchemy Select statement to which options will be applied.
+            options_dict (DeleteOptions, optional): A dictionary containing various options to be
+                applied to the delete statement. Defaults to None.
+
+        Returns:
+            Delete: The modified SQLAlchemy Select statement with the applied options.
         """
         if not options_dict:
             return statement

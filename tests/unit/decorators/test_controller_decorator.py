@@ -1,7 +1,7 @@
 from typing import Any, ClassVar
 
 import pytest
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, FastAPI, Request
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED
 from starlette.testclient import TestClient
 
@@ -38,7 +38,9 @@ class TestControllerDecorator:
             def int_response(self) -> int:
                 return self.one + self.two
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         response_1 = client.get("/")
         assert response_1.status_code == HTTP_200_OK
         assert response_1.json() == expected_response
@@ -66,7 +68,9 @@ class TestControllerDecorator:
             def int_dependencies(self) -> int:
                 return self.one + self.two
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         response = client.get("/")
         assert response.status_code == HTTP_200_OK
         assert response.content == b"3"
@@ -81,7 +85,9 @@ class TestControllerDecorator:
             def g(self) -> bool:
                 return hasattr(self, "class_var")
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         response = client.get("/")
         assert response.status_code == HTTP_200_OK
         assert response.content == b"false"
@@ -98,7 +104,9 @@ class TestControllerDecorator:
             def get_any_path(self, any_path) -> int:  # Alphabetically before `get_test`
                 return 2
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         assert client.get("/test").json() == 1
         assert client.get("/any_other_path").json() == 2
 
@@ -112,7 +120,9 @@ class TestControllerDecorator:
             def root(self, custom_path: str | None = None) -> Any:
                 return {"custom_path": custom_path} if custom_path else []
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         assert client.get("/items").json() == []
         assert client.get("/items/1").json() == {"custom_path": "1"}
         assert client.get("/database/abc").json() == {"custom_path": "abc"}
@@ -125,7 +135,9 @@ class TestControllerDecorator:
             def root(self, param: int | None = None) -> int:
                 return param if param else 0
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         assert client.get("/route").json() == 0
         assert client.get("/route?param=3").json() == 3
 
@@ -139,7 +151,9 @@ class TestControllerDecorator:
             def root(self) -> str:
                 return "hello"
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         response = client.get("/api/item")
         assert response.status_code == HTTP_200_OK
         assert response.json() == "hello"
@@ -158,7 +172,9 @@ class TestControllerDecorator:
             def example(self, request: Request) -> str:
                 return str(request.url_for("Foo.example"))
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         response = client.get("/foo")
         assert response.json() == "http://testserver/bar"
 
@@ -188,7 +204,9 @@ class TestControllerDecorator:
         instance = Controller(value=10)
         _controller(router, Controller, instance=instance)
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         response = client.get("/value")
         assert response.status_code == HTTP_200_OK
         assert response.json() == 5  # Should use init params, not instance value
@@ -206,7 +224,9 @@ class TestControllerDecorator:
         instance = Controller(value=10)
         _controller(router, Controller, instance=instance)
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         response = client.get("/value")
         assert response.status_code == HTTP_200_OK
         assert response.json() == 10  # Should use instance value, not default
@@ -221,7 +241,9 @@ class TestControllerDecorator:
             def post(self) -> str:
                 return "post_response"
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
 
         # Test first URL
         assert client.get("/users").json() == "get_response"
@@ -255,7 +277,9 @@ class TestControllerDecorator:
         setattr(Controller.get, RETURN_TYPES_FUNC_KEY, custom_return_types)
         controller(router, "/items")(Controller)
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         response = client.get("/items")
         assert response.status_code == HTTP_201_CREATED
         assert response.json() == {"id": 1, "name": "item1"}
@@ -303,7 +327,9 @@ class TestControllerDecorator:
             def get(self) -> str:
                 return "ok"
 
-        client = TestClient(router)
+        app = FastAPI()
+        app.include_router(router)
+        client = TestClient(app)
         resp = client.get("/prefixed")
         assert resp.status_code == HTTP_200_OK
 

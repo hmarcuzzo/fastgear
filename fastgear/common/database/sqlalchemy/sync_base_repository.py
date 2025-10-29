@@ -309,14 +309,19 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
 
         """
         if isinstance(delete_statement, Delete):
-            raw = db.execute(delete_statement).all()
+            res = db.execute(delete_statement)
+            objs = res.all()
         else:
-            record = self.find_one_or_fail(delete_statement, db)
-            db.delete(record)
-            raw = [record.id]
+            stmt = self.statement_constructor.build_delete_statement(delete_statement).returning(
+                self.entity
+            )
+            res = db.execute(stmt)
+            objs = res.scalars().all()
 
         self.save(db)
-        return DeleteResult(raw=raw, affected=len(raw))
+
+        affected = len(objs)
+        return DeleteResult(raw=objs, affected=affected)
 
     def soft_delete(
         self, update_filter: str | UpdateOptions, db: SyncSessionType = None

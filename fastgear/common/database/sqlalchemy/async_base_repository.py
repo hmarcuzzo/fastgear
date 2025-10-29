@@ -17,6 +17,7 @@ from fastgear.common.database.sqlalchemy.repository_utils.inject_db_parameter_de
     inject_db_parameter_decorator,
 )
 from fastgear.common.database.sqlalchemy.session import AsyncSessionType
+from fastgear.types.delete_options import DeleteOptions
 from fastgear.types.delete_result import DeleteResult
 from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.find_one_options import FindOneOptions
@@ -306,7 +307,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
         return UpdateResult(raw=objs, affected=affected, generated_maps=[])
 
     async def delete(
-        self, delete_statement: str | FindOneOptions | ReturningDelete, db: AsyncSessionType = None
+        self, delete_statement: str | DeleteOptions | ReturningDelete, db: AsyncSessionType = None
     ) -> DeleteResult:
         """Deletes a record in the database that matches the given delete statement.
 
@@ -321,14 +322,19 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
 
         """
         if isinstance(delete_statement, Delete):
-            raw = (await db.execute(delete_statement)).all()
+            res = await db.execute(delete_statement)
+            objs = res.all()
         else:
-            record = await self.find_one_or_fail(delete_statement, db)
-            await db.delete(record)
-            raw = [record.id]
+            stmt = self.statement_constructor.build_delete_statement(delete_statement).returning(
+                self.entity
+            )
+            res = await db.execute(stmt)
+            objs = res.scalars().all()
 
         await self.save(db)
-        return DeleteResult(raw=raw, affected=len(raw))
+
+        affected = len(objs)
+        return DeleteResult(raw=objs, affected=affected)
 
     async def soft_delete(
         self, update_filter: str | UpdateOptions, db: AsyncSessionType = None

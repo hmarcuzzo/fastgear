@@ -580,18 +580,13 @@ class TestAsyncBaseRepository:
         repo = UserRepo()
         db = FakeAsyncSession()
 
-        # Use non-Delete branch: resolve record by id via find_one_or_fail
+        # Queue result for the DELETE...RETURNING statement
         user = UserEntity(id="del1", name="Z")
-
-        async def _fake_find_one_or_fail(stmt, db=None):
-            return user
-
-        monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
+        db.queue_execute(_ExecuteResult(scalars=[user]))
 
         res = await repo.delete("del1", db)
-        assert res["raw"] == ["del1"]
+        assert res["raw"] == [user]
         assert res["affected"] == 1
-        assert user in db.deleted
         assert db.commit_calls == 1
 
     @pytest.mark.asyncio
@@ -633,12 +628,6 @@ class TestAsyncBaseRepository:
         repo = UserRepo()
         db = FakeAsyncSession()
 
-        # Ensure we don't hit the real select_constructor on dataclass entity
-        async def _fake_find_one_or_fail(stmt, db=None):  # noqa: ANN001, ARG001
-            return UserEntity(id="U1", name="stub")
-
-        monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
-
         # Stub repo_utils to return a known response
         expected = {"raw": ["ok"], "affected": 3, "generated_maps": [["a", "b"]]}
         monkeypatch.setattr(
@@ -658,12 +647,7 @@ class TestAsyncBaseRepository:
         repo = UserRepo()
         db = FakeAsyncSession()
 
-        user = UserEntity(id="ID-7", name="T")
-
-        async def _fake_find_one_or_fail(f, db=None):
-            return user
-
-        monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
+        UserEntity(id="ID-7", name="T")
 
         called: dict[str, Any] = {}
 
@@ -683,12 +667,6 @@ class TestAsyncBaseRepository:
     async def test_soft_delete_reraises_exception(self, monkeypatch: pytest.MonkeyPatch) -> None:
         repo = UserRepo()
         db = FakeAsyncSession()
-
-        # Ensure we resolve parent id without hitting SQLAlchemy inspect on dataclass
-        async def _fake_find_one_or_fail(stmt, db=None):  # noqa: ANN001, ARG001
-            return UserEntity(id="ANY", name="x")
-
-        monkeypatch.setattr(repo, "find_one_or_fail", _fake_find_one_or_fail)
 
         # Cause the inner function executed in run_sync to raise
         def _raise(entity, update_filter, db=None):  # noqa: ANN001, ARG001

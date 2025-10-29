@@ -159,3 +159,55 @@ class TestStatementConstructor:
         fields = ["a", "b", "c"]  # 'c' not in mapping -> falls back to field itself
         result = StatementConstructor.extract_from_mapping(mapping, fields)
         assert result == ["x", "y", "z", "c"]
+
+    @pytest.mark.it("✅  build_update_statement with UpdateOptions filters by where clause")
+    def test_build_update_with_update_options(self) -> None:
+        sc = StatementConstructor(Parent)
+        payload = {"name": "Updated"}
+        options = {"where": [Parent.id == 1]}
+        stmt = sc.build_update_statement(options, payload=payload)
+        sql = _sql(stmt)
+        assert "UPDATE parent_sc" in sql
+        assert "WHERE" in sql
+        assert "parent_sc.id =" in sql
+        assert "parent_sc.name IS NOT ?" in sql
+
+    @pytest.mark.it("✅  build_update_statement with string criteria filters by primary key")
+    def test_build_update_with_string_pk(self) -> None:
+        sc = StatementConstructor(Parent)
+        payload = {"name": "Updated"}
+        stmt = sc.build_update_statement("1", payload=payload)
+        sql = _sql(stmt)
+        assert "UPDATE parent_sc" in sql
+        assert "WHERE" in sql
+        assert "parent_sc.id =" in sql
+        assert "parent_sc.name IS NOT ?" in sql
+
+    @pytest.mark.it("✅  build_update_statement adds distinct_from conditions for payload fields")
+    def test_build_update_adds_distinct_from_conditions(self) -> None:
+        sc = StatementConstructor(Parent)
+        payload = {"name": "NewName", "id": 5}
+        options = {"where": [Parent.id > 0]}
+        stmt = sc.build_update_statement(options, payload=payload)
+        sql = _sql(stmt)
+        assert " OR " in sql
+        assert sql.count("IS NOT ?") >= 2
+
+    @pytest.mark.it("✅  build_update_statement with new_entity uses provided entity")
+    def test_build_update_with_new_entity(self) -> None:
+        sc = StatementConstructor(Parent)
+        payload = {"parent_id": 2}
+        options = {"where": [Child.id == 1]}
+        stmt = sc.build_update_statement(options, new_entity=Child, payload=payload)
+        sql = _sql(stmt)
+        assert "UPDATE child_sc" in sql
+        assert "child_sc.id =" in sql
+        assert "child_sc.parent_id IS NOT ?" in sql
+
+    @pytest.mark.it("❌  build_update_statement with unknown option raises KeyError")
+    def test_build_update_with_unknown_option_raises(self) -> None:
+        sc = StatementConstructor(Parent)
+        payload = {"name": "Updated"}
+        options = {"where": [Parent.id == 1], "bad": "option"}  # type: ignore[dict-item]
+        with pytest.raises(KeyError, match="Unknown option: bad in UpdateOptions"):
+            sc.build_update_statement(options, payload=payload)

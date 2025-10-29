@@ -3,7 +3,7 @@ from starlette.status import (
     HTTP_401_UNAUTHORIZED,
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
-    HTTP_422_UNPROCESSABLE_ENTITY,
+    HTTP_422_UNPROCESSABLE_CONTENT,
     HTTP_429_TOO_MANY_REQUESTS,
 )
 
@@ -48,7 +48,7 @@ class UnprocessableEntityException(CustomBaseException):
     ) -> None:
         if loc is None:
             loc = []
-        self.status_code = HTTP_422_UNPROCESSABLE_ENTITY
+        self.status_code = HTTP_422_UNPROCESSABLE_CONTENT
         super().__init__(msg, loc, _type)
 
 
@@ -56,7 +56,7 @@ class DuplicateValueException(CustomBaseException):
     def __init__(self, msg: str, loc: list[str] = None, _type: str = "Duplicate Value") -> None:
         if loc is None:
             loc = []
-        self.status_code = HTTP_422_UNPROCESSABLE_ENTITY
+        self.status_code = HTTP_422_UNPROCESSABLE_CONTENT
         super().__init__(msg, loc, _type)
 
 

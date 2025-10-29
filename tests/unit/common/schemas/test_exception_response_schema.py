@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
-from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+from starlette.status import HTTP_422_UNPROCESSABLE_CONTENT
 
 from fastgear.common.schema.exception_response_schema import (
     DetailResponseSchema,
@@ -44,11 +44,11 @@ class TestExceptionResponseSchema:
             timestamp=ts,
             path="/x",
             method="GET",
-            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
         # status_code is expected to be 422
-        assert exc.status_code == HTTP_422_UNPROCESSABLE_ENTITY
+        assert exc.status_code == HTTP_422_UNPROCESSABLE_CONTENT
         assert isinstance(exc.timestamp, datetime)
         assert exc.timestamp == ts
         assert exc.path == "/x"

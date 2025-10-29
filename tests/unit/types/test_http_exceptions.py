@@ -4,7 +4,7 @@ from starlette.status import (
     HTTP_401_UNAUTHORIZED,
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
-    HTTP_422_UNPROCESSABLE_ENTITY,
+    HTTP_422_UNPROCESSABLE_CONTENT,
     HTTP_429_TOO_MANY_REQUESTS,
 )
 
@@ -35,8 +35,8 @@ class TestHTTPExceptions:
             (UnauthorizedException, HTTP_401_UNAUTHORIZED, "unauthorized"),
             (ForbiddenException, HTTP_403_FORBIDDEN, "forbidden"),
             (NotFoundException, HTTP_404_NOT_FOUND, "Not Found"),
-            (UnprocessableEntityException, HTTP_422_UNPROCESSABLE_ENTITY, "Unprocessable Entity"),
-            (DuplicateValueException, HTTP_422_UNPROCESSABLE_ENTITY, "Duplicate Value"),
+            (UnprocessableEntityException, HTTP_422_UNPROCESSABLE_CONTENT, "Unprocessable Entity"),
+            (DuplicateValueException, HTTP_422_UNPROCESSABLE_CONTENT, "Duplicate Value"),
             (RateLimitException, HTTP_429_TOO_MANY_REQUESTS, "Rate Limit"),
         ],
     )

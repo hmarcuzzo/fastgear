@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+from starlette.status import HTTP_422_UNPROCESSABLE_CONTENT
 
 from fastgear.common.schema import DetailResponseSchema, ExceptionResponseSchema
 from fastgear.types.http_exceptions import (
@@ -73,11 +73,11 @@ class HttpExceptionsHandler:
 
             """
             return Response(
-                status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=HTTP_422_UNPROCESSABLE_CONTENT,
                 headers={"content-type": "application/json"},
                 content=json.dumps(
                     self.global_exception_error_message(
-                        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                        status_code=HTTP_422_UNPROCESSABLE_CONTENT,
                         detail=[DetailResponseSchema(**detail) for detail in exc.errors()],
                         request=request,
                     ).model_dump(),

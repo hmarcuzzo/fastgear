@@ -45,6 +45,7 @@ plugins:
 
 nav:
   - FastGear: index.md
+  - Installing: installing.md
 
 markdown_extensions:
   - admonition

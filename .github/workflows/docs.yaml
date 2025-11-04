@@ -29,4 +29,5 @@ jobs:
           python-version: "3.13"
 
       - name: Deploy Documentation
+        working-directory: docs/en
         run: uv run --only-group docs mkdocs gh-deploy --force

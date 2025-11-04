@@ -1,0 +1,74 @@
+site_name: FastGear
+site_description: Python library for FastAPI, boosting SQLAlchemy and Redis with pagination, error handling, and session management.
+site_author: Henrique Marcuzzo
+site_url: https://github.com/hmarcuzzo/fastgear/
+
+theme:
+  name: material
+  font:
+    text: Ubuntu
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tabs
+    - navigation.indexes
+    - search.suggest
+    - content.code.copy
+  language: en
+  repo_name: hmarcuzzo/fastgear/
+  repo_url: https://github.com/hmarcuzzo/fastgear/
+  edit_uri: edit/main/docs/
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep blue
+      accent: deep blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep blue
+      accent: deep blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          rendering:
+            show_source: true
+
+nav:
+  - FastGear: index.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      restrict_base_path: false
+      check_paths: true
+  - pymdownx.superfences
+
+extra:
+  analytics:
+    provider: google
+    property: G-YNEVN69SC3
+  social:
+  - icon: fontawesome/brands/github-alt
+    link: https://github.com/hmarcuzzo/fastgear/
+  alternate:
+  - link: /
+    name: en - English

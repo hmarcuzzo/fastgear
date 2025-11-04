@@ -24,6 +24,8 @@
 </p>
 <hr>
 
+**Documentation**: <a href="https://hmarcuzzo.github.io/fastgear/" target="_blank">https://hmarcuzzo.github.io/fastgear/</a>
+
 **Source Code**: <a href="https://github.com/hmarcuzzo/fastgear" target="_blank">https://github.com/hmarcuzzo/fastgear</a>
 
 

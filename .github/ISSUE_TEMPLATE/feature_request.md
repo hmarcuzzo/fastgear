@@ -7,11 +7,11 @@ assignees: ''
 
 ---
 
-## Description
+### Description
 Provide a brief and clear description of the feature or functionality to be implemented.
 Focus on **what** should be done and **why** it is needed.
 
-## Acceptance Criteria
+### Acceptance Criteria
 Describe how this feature should behave.  
 Prefer **checklist-style items** to make validation objective.
 
@@ -20,6 +20,6 @@ Prefer **checklist-style items** to make validation objective.
 - Errors are handled gracefully
 - Feature is covered by tests (unit/integration where applicable)
 
-## Notes
+### Notes
 (Optional)  
 Add any additional context, links, screenshots, references, or technical considerations that may help during implementation.

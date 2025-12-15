@@ -10,7 +10,9 @@ from fastgear.decorators.controller_decorator import (
     INCLUDE_INIT_PARAMS_KEY,
     RETURN_TYPES_FUNC_KEY,
     _controller,
+    _convert_to_title_case,
     _remove_router_tags,
+    _update_route_summary,
 )
 
 
@@ -397,3 +399,49 @@ class TestControllerDecorator:
         # Remove our fake module if it shouldn't exist
         monkeypatch.delitem(sys.modules, "pydantic.typing", raising=False)
         importlib.reload(cd)
+
+    @pytest.mark.it("✅  Should convert snake_case to title case correctly")
+    def test_convert_to_title_case(self) -> None:
+        assert _convert_to_title_case("get_user_by_id") == "Get User By Id"
+        assert _convert_to_title_case("create") == "Create"
+        assert _convert_to_title_case("list_all_items") == "List All Items"
+        assert _convert_to_title_case("update_user_profile") == "Update User Profile"
+
+    @pytest.mark.it("✅  Should set route summary based on function name when not provided")
+    def test_route_summary_default_from_function_name(self, router: APIRouter) -> None:
+        @controller(router)
+        class Controller:
+            @router.get("/items")
+            def get_all_items(self) -> str:
+                return "items"
+
+        matching = [
+            r for r in router.routes if hasattr(r, "path") and getattr(r, "path", "") == "/items"
+        ]
+        assert len(matching) == 1
+        assert matching[0].summary == "Get All Items"
+
+    @pytest.mark.it("✅  Should preserve explicit summary when provided")
+    def test_route_summary_explicit_preserved(self, router: APIRouter) -> None:
+        @controller(router)
+        class Controller:
+            @router.get("/users", summary="Custom Summary For Users")
+            def get_users(self) -> str:
+                return "users"
+
+        matching = [
+            r for r in router.routes if hasattr(r, "path") and getattr(r, "path", "") == "/users"
+        ]
+        assert len(matching) == 1
+        assert matching[0].summary == "Custom Summary For Users"
+
+    @pytest.mark.it("✅  Should skip summary update for non-APIRoute routes")
+    def test_update_route_summary_skips_non_api_route(self) -> None:
+        from starlette.routing import Route
+
+        def dummy_endpoint() -> None:
+            pass
+
+        route = Route("/dummy", dummy_endpoint)
+        _update_route_summary(route)
+        assert not hasattr(route, "summary")

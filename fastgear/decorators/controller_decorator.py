@@ -132,6 +132,7 @@ def _register_endpoints(router: APIRouter, cls: type[Any], *urls: str) -> None:
         _remove_router_tags(route, router)
         route.path = route.path[prefix_length:]
         _update_controller_route_endpoint_signature(cls, route)
+        _update_route_summary(route)
         if not route.name.startswith(f"{cls.__name__}."):
             route.name = f"{cls.__name__}.{route.name}"
         controller_router.routes.append(route)
@@ -141,6 +142,18 @@ def _register_endpoints(router: APIRouter, cls: type[Any], *urls: str) -> None:
 def _remove_router_tags(route: Route, router: APIRouter) -> None:
     if hasattr(route, "tags"):
         route.tags = list(set(route.tags) - set(router.tags))
+
+
+def _convert_to_title_case(name: str) -> str:
+    return " ".join(word.capitalize() for word in name.split("_"))
+
+
+def _update_route_summary(route: Route | WebSocketRoute) -> None:
+    if not isinstance(route, APIRoute):
+        return
+
+    if route.summary is None:
+        route.summary = _convert_to_title_case(route.endpoint.__name__)
 
 
 def _allocate_routes_by_method_name(

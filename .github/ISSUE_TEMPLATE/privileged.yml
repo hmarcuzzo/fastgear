@@ -7,6 +7,7 @@ body:
         Thanks for your interest in FastGear! 🚀
 
         If you are not @hmarcuzzo or he didn't ask you directly to create an issue here, please start the conversation in a [Question in GitHub Discussions](https://github.com/hmarcuzzo/fastgear/discussions/categories/questions) instead.
+
   - type: checkboxes
     id: privileged
     attributes:
@@ -15,11 +16,15 @@ body:
       options:
         - label: I'm @hmarcuzzo or he asked me directly to create an issue here.
           required: true
-  - type: markdown
+
+  - type: textarea
     id: content
     attributes:
+      label: Issue Content
+      description: Add the content of the issue here. Paste the template above or write your content.
+      placeholder: |
+        Paste your issue here.
       value: |
-        # Template (copy into *Issue Content* and edit)
         ### Description
         Provide a brief and clear description of the feature or functionality to be implemented.
         Focus on **what** should be done and **why** it is needed.
@@ -36,11 +41,3 @@ body:
         ### Notes
         (Optional)  
         Add any additional context, links, screenshots, references, or technical considerations that may help during implementation.
-
-  - type: textarea
-    id: content
-    attributes:
-      label: Issue Content
-      description: Add the content of the issue here. Paste the template above or write your content.
-      placeholder: |
-        Paste your issue here using the template above (Description, Acceptance Criteria, Notes).

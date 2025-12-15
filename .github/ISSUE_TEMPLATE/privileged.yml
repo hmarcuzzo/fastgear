@@ -18,8 +18,6 @@ body:
   - type: markdown
     id: content
     attributes:
-      label: Issue Content
-      description: Add the content of the issue here.
       value: |
         ### Description
         Provide a brief and clear description of the feature or functionality to be implemented.

@@ -21,7 +21,7 @@ body:
     id: content
     attributes:
       label: Issue Content
-      description: Add the content of the issue here. Paste the template above or write your content.
+      description: Add the content of the issue here.
       placeholder: |
         Paste your issue here.
       value: |

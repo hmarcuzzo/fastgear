@@ -19,6 +19,7 @@ body:
     id: content
     attributes:
       value: |
+        # Template (copy into *Issue Content* and edit)
         ### Description
         Provide a brief and clear description of the feature or functionality to be implemented.
         Focus on **what** should be done and **why** it is needed.
@@ -35,3 +36,11 @@ body:
         ### Notes
         (Optional)  
         Add any additional context, links, screenshots, references, or technical considerations that may help during implementation.
+
+  - type: textarea
+    id: content
+    attributes:
+      label: Issue Content
+      description: Add the content of the issue here. Paste the template above or write your content.
+      placeholder: |
+        Paste your issue here using the template above (Description, Acceptance Criteria, Notes).

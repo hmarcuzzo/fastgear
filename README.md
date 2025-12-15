@@ -2,16 +2,16 @@
   <i>Python library for FastAPI, boosting SQLAlchemy and Redis with pagination, error handling, and session management.</i>
 </p>
 <p align="center" markdown=1>
-<a href="https://github.com/hmarcuzzo/fastgear">
+<a href="https://github.com/hmarcuzzo/fastgear" target="_blank">
   <img src="https://img.shields.io/badge/Python-3.11 | 3.12 | 3.13 | 3.14-40cd60" alt="Supported Python Versions"/>
 </a>
-<a href="https://pypi.org/project/fastgear/">
+<a href="https://pypi.org/project/fastgear/" target="_blank">
   <img src="https://img.shields.io/pypi/v/fastgear?color=%2334D058&label=pypi%20package" alt="PyPi Version"/>
 </a>
-<a href="https://github.com/hmarcuzzo/fastgear/actions/workflows/tests.yaml">
+<a href="https://github.com/hmarcuzzo/fastgear/actions/workflows/tests.yaml" target="_blank">
   <img src="https://github.com/hmarcuzzo/fastgear/actions/workflows/tests.yaml/badge.svg" alt="Tests"/>
 </a>
-<a href="https://codecov.io/gh/hmarcuzzo/fastgear" > 
+<a href="https://codecov.io/gh/hmarcuzzo/fastgear" target="_blank"> 
   <img src="https://codecov.io/gh/hmarcuzzo/fastgear/graph/badge.svg?token=TI97JTMZOR" alt="Codecov"/>
 </a>
 </p>

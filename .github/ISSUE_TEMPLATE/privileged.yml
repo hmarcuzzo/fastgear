@@ -15,12 +15,12 @@ body:
       options:
         - label: I'm @hmarcuzzo or he asked me directly to create an issue here.
           required: true
-  - type: textarea
+  - type: markdown
     id: content
     attributes:
       label: Issue Content
       description: Add the content of the issue here.
-      default: |
+      value: |
         ### Description
         Provide a brief and clear description of the feature or functionality to be implemented.
         Focus on **what** should be done and **why** it is needed.

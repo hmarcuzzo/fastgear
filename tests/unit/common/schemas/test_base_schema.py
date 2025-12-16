@@ -84,3 +84,88 @@ class TestBaseSchema:
 
         with pytest.raises(ValidationError):
             BaseSchema.model_validate_exclude_unloaded(ObjMissingID())
+
+    @pytest.mark.it("✅  Should return dict from dict input with only model fields")
+    def test_to_dict_from_dict(self) -> None:
+        uid = uuid4()
+        now = datetime.now(UTC)
+        payload = {"id": uid, "created_at": now, "updated_at": now, "extra_field": "ignored"}
+
+        result = BaseSchema.to_dict_exclude_unloaded(payload)
+
+        assert result == {"id": uid, "created_at": now, "updated_at": now}
+        assert "extra_field" not in result
+
+    @pytest.mark.it("✅  Should return dict from object with loaded attributes")
+    def test_to_dict_from_object(self) -> None:
+        uid = uuid4()
+        now = datetime.now(UTC)
+        obj = _ObjWithAttrs(id=uid, created_at=now, updated_at=now)
+
+        result = BaseSchema.to_dict_exclude_unloaded(obj)
+
+        assert result == {"id": uid, "created_at": now, "updated_at": now}
+
+    @pytest.mark.it("✅  Should skip attributes that raise InvalidRequestError (unloaded)")
+    def test_to_dict_skips_unloaded_fields(self) -> None:
+        uid = uuid4()
+        now = datetime.now(UTC)
+        obj = _ObjWithUnloadedField(_id=uid, created_at=now, updated_at_loaded=False)
+
+        result = BaseSchema.to_dict_exclude_unloaded(obj)
+
+        assert result == {"id": uid, "created_at": now}
+        assert "updated_at" not in result
+
+    @pytest.mark.it("✅  Should return partial dict when some fields are missing in input dict")
+    def test_to_dict_from_partial_dict(self) -> None:
+        uid = uuid4()
+        payload = {"id": uid}
+
+        result = BaseSchema.to_dict_exclude_unloaded(payload)
+
+        assert result == {"id": uid}
+        assert "created_at" not in result
+        assert "updated_at" not in result
+
+    @pytest.mark.it("❌  Should return empty dict when all fields raise InvalidRequestError")
+    def test_to_dict_all_fields_unloaded(self) -> None:
+        class ObjAllUnloaded:
+            @property
+            def id(self):
+                raise InvalidRequestError("id not loaded")
+
+            @property
+            def created_at(self):
+                raise InvalidRequestError("created_at not loaded")
+
+            @property
+            def updated_at(self):
+                raise InvalidRequestError("updated_at not loaded")
+
+        result = BaseSchema.to_dict_exclude_unloaded(ObjAllUnloaded())
+
+        assert result == {}
+
+    @pytest.mark.it("❌  Should return empty dict when input dict has no matching fields")
+    def test_to_dict_no_matching_fields(self) -> None:
+        payload = {"unknown_field": "value", "another_field": 123}
+
+        result = BaseSchema.to_dict_exclude_unloaded(payload)
+
+        assert result == {}
+
+    @pytest.mark.it("❌  Should return empty dict when input dict is empty")
+    def test_to_dict_empty_dict(self) -> None:
+        result = BaseSchema.to_dict_exclude_unloaded({})
+
+        assert result == {}
+
+    @pytest.mark.it("❌  Should not validate types (raw values preserved)")
+    def test_to_dict_does_not_validate_types(self) -> None:
+        payload = {"id": "not-a-uuid", "created_at": "invalid-date"}
+
+        result = BaseSchema.to_dict_exclude_unloaded(payload)
+
+        assert result["id"] == "not-a-uuid"
+        assert result["created_at"] == "invalid-date"

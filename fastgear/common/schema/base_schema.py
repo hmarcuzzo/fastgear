@@ -23,31 +23,22 @@ class BaseSchema(CustomBaseModel):
     updated_at: datetime | None = None
 
     @classmethod
-    def model_validate_exclude_unloaded(cls: type[BaseModel], obj: Any) -> BaseModel:
-        """Validates the model and excludes fields that are not loaded.
-
-        This method attempts to get the attribute for each field in the model. If an InvalidRequestError
-        is raised, it means the field is not loaded, and it is excluded from the validation.
-
-        Args:
-            cls (Type[BaseModel]): The class type of the model.
-            obj (Any): The object to validate, can be a dictionary or an instance of the model.
-
-        Returns:
-            BaseModel: An instance of the model with only the loaded fields.
-
-        """
-        obj_dict = {}
+    def _extract_fields_to_dict(cls: type[BaseModel], obj: Any) -> dict[str, Any]:
         if isinstance(obj, dict):
-            obj_dict = obj
-        else:
-            for field_name in cls.model_fields:
-                try:
-                    # Attempt to get the attribute, if it raises an InvalidRequestError, it is not loaded
-                    value = getattr(obj, field_name)
-                    obj_dict[field_name] = value
-                except InvalidRequestError:
-                    # Don't add the field if it is not loaded
-                    continue
+            return {key: obj[key] for key in cls.model_fields if key in obj}
 
-        return cls(**obj_dict)
+        result: dict[str, Any] = {}
+        for field_name in cls.model_fields:
+            try:
+                result[field_name] = getattr(obj, field_name)
+            except InvalidRequestError:
+                continue
+        return result
+
+    @classmethod
+    def model_validate_exclude_unloaded(cls: type[BaseModel], obj: Any) -> BaseModel:
+        return cls(**cls._extract_fields_to_dict(obj))
+
+    @classmethod
+    def to_dict_exclude_unloaded(cls: type[BaseModel], obj: Any) -> dict[str, Any]:
+        return cls._extract_fields_to_dict(obj)

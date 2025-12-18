@@ -1,0 +1,142 @@
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest in FastGear! 🚀
+
+        Please follow these instructions, fill every question, and do every step. 
+
+        By asking questions in a structured way (following this) it will be much easier to help you.
+
+        And there's a high chance that you will find the solution along the way and you won't even have to submit it and wait for an answer. 🙂
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example Code
+      description: |
+        Provide a complete, runnable code snippet that demonstrates your issue.
+
+        A [minimal, reproducible example](https://stackoverflow.com/help/minimal-reproducible-example) helps us understand and debug your problem faster.
+
+      placeholder: |
+        from fastapi import APIRouter, Depends
+        from fastgear.decorators import controller
+
+        router = APIRouter()
+
+
+        @controller(router)
+        class UserController:
+            @router.get("/users")
+            async def get_users(self):
+                return [{"id": 1, "name": "John"}]
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: |
+       Describe your issue clearly.
+
+        Include:
+        - What you're trying to accomplish
+        - The expected behavior
+        - The actual behavior you're experiencing
+
+      placeholder: |
+        * I'm using the `@controller` decorator on my `UserController` class.
+        * Expected: The `/users` endpoint returns a list of users.
+        * Actual: I get an AttributeError when the route is called.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you on?
+      multiple: true
+      options:
+        - Linux
+        - Windows
+        - macOS
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: os-details
+    attributes:
+      label: Operating System Details
+      description: You can add more details about your operating system here, in particular if you chose "Other".
+
+  - type: input
+    id: fastgear-version
+    attributes:
+      label: FastGear Version
+      description: |
+        What FastGear version are you using?
+
+        You can find the FastGear version with:
+
+        ```bash
+        python -c "import fastgear; print(fastgear.__version__)"
+        ```
+    validations:
+      required: true
+
+  - type: input
+    id: fastapi-version
+    attributes:
+      label: FastAPI Version
+      description: |
+        What FastAPI version are you using?
+
+        You can find the FastAPI version with:
+
+        ```bash
+        python -c "import fastapi; print(fastapi.__version__)"
+        ```
+    validations:
+      required: true
+
+  - type: input
+    id: pydantic-version
+    attributes:
+      label: Pydantic Version
+      description: |
+        What Pydantic version are you using?
+
+        You can find the Pydantic version with:
+
+        ```bash
+        python -c "import pydantic; print(pydantic.version.VERSION)"
+        ```
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: |
+        What Python version are you using?
+
+        You can find the Python version with:
+
+        ```bash
+        python --version
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any additional context information or screenshots you think are useful.

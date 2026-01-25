@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import pytest
-from fastapi import Body, FastAPI, Request
+from fastapi import Body, FastAPI, Request, Response
 from fastapi.openapi.utils import get_openapi
 from httpx import AsyncClient
 from pydantic import BaseModel, ValidationError
@@ -15,6 +15,7 @@ from starlette.status import (
 
 from fastgear.common.schema import DetailResponseSchema
 from fastgear.handlers.http_exceptions_handler import HttpExceptionsHandler
+from fastgear.types.custom_base_exception import CustomBaseException
 from fastgear.types.http_exceptions import NotFoundException
 from tests.fixtures.api import app
 
@@ -113,6 +114,43 @@ class TestHttpExceptionsHandler:
         assert "resource" in detail["loc"]
         assert detail["msg"] == "Resource not found"
         assert detail["type"] == "Not Found"
+
+    @pytest.mark.anyio
+    @pytest.mark.it("✅  Should handle custom exception derived from CustomBaseException correctly")
+    async def test_custom_base_exception_handling(self, async_client: AsyncClient):
+        class CustomTestException(CustomBaseException):
+            def __init__(
+                self, msg: str, loc: list[str] | None = None, _type: str = "Custom Test Error"
+            ) -> None:
+                if loc is None:
+                    loc = []
+                self.status_code = 418
+                super().__init__(msg, loc, _type)
+
+        @app.get("/custom-test")
+        async def custom_test_endpoint():
+            raise CustomTestException(
+                msg="This is a custom test exception", loc=["test", "endpoint"], _type="test_error"
+            )
+
+        resp = await async_client.get("/custom-test")
+
+        assert resp.status_code == 418
+
+        body = resp.json()
+        assert body["status_code"] == 418
+        assert body["path"] == "/custom-test"
+        assert body["method"] == "GET"
+        assert "timestamp" in body
+        assert isinstance(body["timestamp"], str)
+
+        assert isinstance(body["detail"], list)
+        assert len(body["detail"]) == 1
+
+        detail = body["detail"][0]
+        assert detail["loc"] == ["test", "endpoint"]
+        assert detail["msg"] == "This is a custom test exception"
+        assert detail["type"] == "test_error"
 
     @pytest.mark.it("✅  Should generate global exception error messages correctly")
     def test_global_exception_error_message_generation(self):

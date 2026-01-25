@@ -161,7 +161,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
 
         Args:
             stmt_or_filter (FindManyOptions | Select, optional): The statement or filter to apply. It can be an instance
-                of FindManyOptions or a SQLAlchemy Select statement. Defaults to None.
+                of FindManyOptions or an SQLAlchemy Select statement. Defaults to None.
             db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
@@ -193,7 +193,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
 
         Args:
             stmt_or_filter (FindManyOptions | Select, optional): The statement or filter to apply. It can be an
-                instance of FindManyOptions or a SQLAlchemy Select statement. Defaults to None.
+                instance of FindManyOptions or an SQLAlchemy Select statement. Defaults to None.
             db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:
@@ -313,7 +313,7 @@ class AsyncBaseRepository(AbstractRepository[EntityType]):
 
         Args:
             delete_statement (str | FindOneOptions | ReturningDelete): The delete statement to apply. It can be a
-                string, an instance of FindOneOptions, or a SQLAlchemy ReturningDelete statement.
+                string, an instance of FindOneOptions, or an SQLAlchemy ReturningDelete statement.
             db (AsyncSessionType, optional): The database session. Defaults to None.
 
         Returns:

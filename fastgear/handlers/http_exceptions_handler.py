@@ -9,15 +9,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.status import HTTP_422_UNPROCESSABLE_CONTENT
 
 from fastgear.common.schema import DetailResponseSchema, ExceptionResponseSchema
+from fastgear.types.custom_base_exception import CustomBaseException
 from fastgear.types.http_exceptions import (
-    BadRequestException,
     CustomHTTPExceptionType,
-    DuplicateValueException,
-    ForbiddenException,
-    NotFoundException,
-    RateLimitException,
-    UnauthorizedException,
-    UnprocessableEntityException,
 )
 from fastgear.utils import JsonUtils
 
@@ -85,13 +79,7 @@ class HttpExceptionsHandler:
                 ),
             )
 
-        @self.app.exception_handler(BadRequestException)
-        @self.app.exception_handler(UnauthorizedException)
-        @self.app.exception_handler(ForbiddenException)
-        @self.app.exception_handler(NotFoundException)
-        @self.app.exception_handler(UnprocessableEntityException)
-        @self.app.exception_handler(DuplicateValueException)
-        @self.app.exception_handler(RateLimitException)
+        @self.app.exception_handler(CustomBaseException)
         async def custom_exceptions_handler(
             request: Request, exc: CustomHTTPExceptionType
         ) -> Response:

@@ -160,11 +160,16 @@ class HttpExceptionsHandler:
                 schema.
 
         """
-        if not app.openapi_schema:
-            from fastapi.openapi.constants import REF_PREFIX
-            from pydantic.json_schema import models_json_schema
+        from fastapi.openapi.constants import REF_PREFIX
+        from pydantic.json_schema import models_json_schema
 
-            openapi_schema = app.openapi()
+        original_openapi = app.openapi
+
+        def custom_openapi():
+            if app.openapi_schema:
+                return app.openapi_schema
+
+            openapi_schema = original_openapi()
 
             paths = openapi_schema.get("paths", {})
             for methods in paths.values():
@@ -190,4 +195,8 @@ class HttpExceptionsHandler:
             openapi_schemas.pop("ValidationError", None)
             openapi_schemas.pop("HTTPValidationError", None)
 
+            app.openapi_schema = openapi_schema
+            return app.openapi_schema
+
+        app.openapi = custom_openapi
         return app.openapi_schema

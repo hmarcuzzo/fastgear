@@ -2,9 +2,12 @@ name: Python Compatibility
 
 on:
   push:
-    branches: [ '**' ]
+    branches:
+      - main
   pull_request:
-    branches: [ '**' ]
+    types:
+      - opened
+      - synchronize
 
 jobs:
   python-versions:

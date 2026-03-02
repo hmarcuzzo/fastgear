@@ -14,15 +14,23 @@ dependencies = [
     "loguru>=0.7.3",
     "pydantic>=2.11.7",
     "pydantic-settings>=2.10.0",
-    "sqlalchemy>=2.0.41",
-    "sqlalchemy-utils>=0.41.2",
     "typing-inspect>=0.9.0",
-    "uuid6>=2025.0.0",
 ]
 
 [project.optional-dependencies]
+sqlalchemy = [
+    "sqlalchemy>=2.0.41",
+    "sqlalchemy-utils>=0.41.2",
+    "uuid6>=2025.0.0",
+]
+
 redis = [
     "redis>=6.2.0",
+]
+
+all = [
+    "fastgear[sqlalchemy]",
+    "fastgear[redis]",
 ]
 
 

@@ -69,6 +69,7 @@ def _init_controller(cls: type[Any], instance: Any = None) -> None:
         x
         for x in old_parameters
         if x.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+        and not _is_manually_resolved(x)
     ]
 
     dependency_names: list[str] = []
@@ -127,6 +128,7 @@ def _register_endpoints(router: APIRouter, cls: type[Any], *urls: str) -> None:
         if isinstance(route, Route | WebSocketRoute) and route.endpoint in functions_set
     ]
     prefix_length = len(router.prefix)  # Until 'black' would fix an issue which causes PEP8: E203
+
     for route in controller_routes:
         router.routes.remove(route)
         _remove_router_tags(route, router)
@@ -136,7 +138,28 @@ def _register_endpoints(router: APIRouter, cls: type[Any], *urls: str) -> None:
         if not route.name.startswith(f"{cls.__name__}."):
             route.name = f"{cls.__name__}.{route.name}"
         controller_router.routes.append(route)
-    router.include_router(controller_router)
+
+    if router.prefix:
+        _temp_router = APIRouter(
+            tags=router.tags,
+            dependencies=router.dependencies,
+            callbacks=router.callbacks,
+            responses=router.responses,
+            default_response_class=router.default_response_class,
+        )
+        _temp_router.include_router(controller_router, prefix=router.prefix)
+        router.routes.extend(_temp_router.routes)
+    else:
+        router.include_router(controller_router)
+
+
+def _is_manually_resolved(param: inspect.Parameter) -> bool:
+    return (
+        param.default is None
+        and param.annotation is not inspect.Parameter.empty
+        and inspect.isclass(param.annotation)
+        and param.annotation.__module__ != "builtins"
+    )
 
 
 def _remove_router_tags(route: Route, router: APIRouter) -> None:

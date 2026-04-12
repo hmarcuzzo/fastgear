@@ -20,4 +20,4 @@ def valid_links() -> Links:
 
 @pytest.fixture
 def valid_page_params() -> dict:
-    return {"total": 2, "page": 1, "size": 10}
+    return {"total": 2, "page": 1, "size": 10, "pages": 1}

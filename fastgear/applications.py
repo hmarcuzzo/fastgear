@@ -7,7 +7,7 @@ from fastgear.handlers import HttpExceptionsHandler
 from fastgear.middlewares import DBSessionMiddleware
 
 UTILS_CALLABLES = {
-    "http_exceptions_handler": lambda app, **kwargs: HttpExceptionsHandler(app, **kwargs),
+    "http_exceptions_handler": HttpExceptionsHandler,
     "http_db_session_middleware": lambda app, **kwargs: app.add_middleware(
         DBSessionMiddleware, **kwargs
     ),

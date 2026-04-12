@@ -14,9 +14,7 @@ class TestSimplePaginationOptions:
     def test_default_values(self):
         page_default = int(custom_page_query.default)
         size_default = int(custom_size_query.default)
-        expected = Pagination(
-            skip=page_default, take=size_default, sort=[], search=[], columns=None
-        )
+        expected = Pagination(skip=page_default, take=size_default, sort=[], search=[], columns=[])
 
         result = self.paginator()
 
@@ -27,7 +25,7 @@ class TestSimplePaginationOptions:
     )
     @pytest.mark.parametrize(("page", "size"), [(1, 10), (2, 25), (5, 100)])
     def test_custom_values(self, page: int, size: int, monkeypatch: pytest.MonkeyPatch):
-        expected = Pagination(skip=page, take=size, sort=[], search=[], columns=None)
+        expected = Pagination(skip=page, take=size, sort=[], search=[], columns=[])
 
         result = self.paginator(page=page, size=size)
 

@@ -19,5 +19,5 @@ class SimplePaginationOptions:
             take=getattr(size, "default", size),
             sort=[],
             search=[],
-            columns=None,
+            columns=[],
         )

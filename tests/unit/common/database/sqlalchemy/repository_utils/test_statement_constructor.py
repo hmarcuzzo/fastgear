@@ -329,6 +329,50 @@ class TestStatementConstructor:
         assert "parent_sc.name = 'ToDelete'" in sql
         assert "parent_sc.id > 5" in sql
 
+    @pytest.mark.it("✅  build_options with columns=None does not raise TypeError")
+    def test_build_options_columns_none_does_not_raise(self) -> None:
+        sc = StatementConstructor(Parent)
+        pagination = Pagination(
+            skip=1,
+            take=10,
+            sort=[],
+            search=[],
+            columns=None,  # type: ignore[arg-type]  # simulates incorrect caller
+        )
+        opts = sc.build_options(pagination)
+        assert opts["relations"] == []
+        assert opts["select"] == []
+
+    @pytest.mark.it("✅  build_options with columns=[] does not raise TypeError")
+    def test_build_options_columns_empty_list_does_not_raise(self) -> None:
+        sc = StatementConstructor(Parent)
+        pagination = Pagination(
+            skip=1,
+            take=10,
+            sort=[],
+            search=[],
+            columns=[],
+        )
+        opts = sc.build_options(pagination)
+        assert opts["relations"] == []
+        assert opts["select"] == []
+
+    @pytest.mark.it(
+        "✅  SimplePaginationOptions produces columns=[] and integrates with build_options without error"
+    )
+    def test_simple_pagination_integrates_with_build_options(self) -> None:
+        from fastgear.decorators.simple_pagination_decorator import SimplePaginationOptions
+
+        paginator = SimplePaginationOptions()
+        pagination = paginator(page=1, size=10)
+
+        assert pagination.columns == []
+
+        sc = StatementConstructor(Parent)
+        opts = sc.build_options(pagination)
+        assert opts["relations"] == []
+        assert opts["select"] == []
+
     @pytest.mark.it("❌  build_delete_statement with unknown option raises KeyError")
     def test_build_delete_with_unknown_option_raises(self) -> None:
         sc = StatementConstructor(Parent)

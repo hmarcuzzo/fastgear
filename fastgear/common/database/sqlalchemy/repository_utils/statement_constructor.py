@@ -16,6 +16,7 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.orm import load_only, selectinload
+from sqlalchemy.orm.strategy_options import _AbstractLoad
 from sqlalchemy_utils import cast_if
 
 from fastgear.types.delete_options import DeleteOptions
@@ -32,14 +33,14 @@ class StatementConstructor:
 
     def build_select_statement(
         self,
-        criteria: str | FindOneOptions | FindManyOptions | Pagination = None,
+        criteria: str | FindOneOptions | FindManyOptions = None,
         new_entity: EntityType = None,
     ) -> Select:
         """Constructs and returns a SQLAlchemy Select statement based on the provided criteria and entity.
 
         Args:
-            criteria (str | FindOneOptions | FindManyOptions, Pagination, optional): The filter criteria to build the select
-                statement. It can be a string, an instance of FindOneOptions, an instance of FindManyOptions or Pagination.
+            criteria (str | FindOneOptions | FindManyOptions | optional): The filter criteria to build the select
+                statement. It can be a string, an instance of FindOneOptions, an instance of FindManyOptions.
                 Defaults to None.
             new_entity (EntityType, optional): A new entity type to use for the select statement.
                 If not provided, the existing entity type will be used. Defaults to None.
@@ -93,15 +94,27 @@ class StatementConstructor:
                 case "take":
                     statement = statement.limit(value)
                 case "relations":
-                    statement = statement.options(
-                        *[selectinload(getattr(entity, relation)) for relation in value]
-                    )
+                    opts = [
+                        self._relation_loader(entity, r) if isinstance(r, str) else r for r in value
+                    ]
+                    statement = statement.options(*opts)
                 case "with_deleted":
                     statement = statement.execution_options(with_deleted=value)
                 case _:
                     raise KeyError(f"Unknown option: {key} in FindOptions")
 
         return statement
+
+    @staticmethod
+    def _relation_loader(root: EntityType, path: str) -> _AbstractLoad:
+        parts = path.split(".")
+        opt = selectinload(getattr(root, parts[0]))
+        current = opt
+        current_entity_attr = getattr(root, parts[0]).property.mapper.class_
+        for p in parts[1:]:
+            current = current.selectinload(getattr(current_entity_attr, p))
+            current_entity_attr = getattr(current_entity_attr, p).property.mapper.class_
+        return current
 
     def build_update_statement(
         self,
@@ -200,7 +213,7 @@ class StatementConstructor:
         return statement
 
     @staticmethod
-    def extract_from_mapping(field_mapping: dict, fields: list) -> list:
+    def extract_from_mapping(field_mapping: dict[str, Any], fields: list[str]) -> list[Any]:
         """Extracts and returns a list of items from the field mapping based on the provided fields.
 
         Args:
@@ -211,15 +224,14 @@ class StatementConstructor:
             list: A list of items extracted from the field mapping based on the provided fields.
 
         """
-        return [
-            item
-            for field in fields
-            for item in (
-                field_mapping.get(field, [field])
-                if isinstance(field_mapping.get(field, field), list)
-                else [field_mapping.get(field, field)]
-            )
-        ]
+        out: list[Any] = []
+        for field in fields:
+            val = field_mapping.get(field, field)
+            if isinstance(val, list):
+                out.extend(val)
+            else:
+                out.append(val)
+        return out
 
     @staticmethod
     def _fix_options_dict(
@@ -289,7 +301,7 @@ class StatementConstructor:
         entity_relationships = inspect(self.entity).relationships
         relations = find_options.get("relations", [])
         select_options = find_options.get("select", [])
-        for field in getattr(pagination, "columns", []):
+        for field in pagination.columns or []:
             if field in entity_relationships:
                 relations.append(field)
             else:

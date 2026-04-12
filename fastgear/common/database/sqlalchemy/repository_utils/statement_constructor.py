@@ -19,10 +19,10 @@ from sqlalchemy.orm import load_only, selectinload
 from sqlalchemy.orm.strategy_options import _AbstractLoad
 from sqlalchemy_utils import cast_if
 
+from fastgear.common.database.sqlalchemy.types import EntityType
 from fastgear.types.delete_options import DeleteOptions
 from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.find_one_options import FindOneOptions
-from fastgear.types.generic_types_var import EntityType
 from fastgear.types.pagination import Pagination, PaginationSearch
 from fastgear.types.update_options import UpdateOptions
 

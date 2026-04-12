@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from fastgear.common.database.redis.client import RedisClientFactory
+from fastgear.common.database.redis import RedisClientFactory
 
 
 @pytest.mark.describe("🧪  RedisClientFactory")

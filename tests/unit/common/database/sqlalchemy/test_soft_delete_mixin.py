@@ -6,7 +6,7 @@ from sqlalchemy import Integer, String, create_engine, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, mapped_column
 
-from fastgear.common.database.sqlalchemy.soft_delete_mixin import SoftDeleteMixin
+from fastgear.common.database.sqlalchemy import SoftDeleteMixin
 
 Base = declarative_base()
 

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import Select, column, delete, table
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 
-from fastgear.common.database.sqlalchemy.async_base_repository import AsyncBaseRepository
+from fastgear.common.database.sqlalchemy import AsyncBaseRepository
 from fastgear.common.database.sqlalchemy.session import db_session
 from fastgear.types.pagination import Pagination
 from tests.fixtures.common.base_repository_fixtures import UserEntity, _ExecuteResult

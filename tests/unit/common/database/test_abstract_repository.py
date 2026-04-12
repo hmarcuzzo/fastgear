@@ -1,9 +1,6 @@
 import pytest
 
 from fastgear.common.database.abstract_repository import AbstractRepository
-from fastgear.common.database.sqlalchemy.repository_utils.base_repository_utils import (
-    BaseRepositoryUtils,
-)
 
 
 class DummyEntity:
@@ -69,9 +66,6 @@ class TestAbstractRepository:
 
         # basic attributes set in AbstractRepository.__init__
         assert repo.entity is DummyEntity
-        assert hasattr(repo, "statement_constructor")
-        assert repo.statement_constructor.entity is DummyEntity
-        assert isinstance(repo.repo_utils, BaseRepositoryUtils)
         assert repo.logger is not None
 
         # static methods are callable on class and instance

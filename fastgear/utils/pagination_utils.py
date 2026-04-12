@@ -1,20 +1,17 @@
 import typing
 from math import ceil
-from typing import Any
+from typing import Any, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic.fields import FieldInfo
 
 from fastgear.types.custom_pages import Page
-from fastgear.types.generic_types_var import (
-    ColumnsQueryType,
-    EntityType,
-    FindAllQueryType,
-    OrderByQueryType,
-)
 from fastgear.types.http_exceptions import BadRequestException
 from fastgear.types.pagination import Pagination, PaginationSearch, PaginationSort
+from fastgear.utils.types import ColumnsQueryType, FindAllQueryType, OrderByQueryType
+
+T = TypeVar("T")
 
 
 class PaginationUtils:
@@ -192,21 +189,21 @@ class PaginationUtils:
 
     @staticmethod
     def to_page_response(
-        items: list[EntityType | BaseModel], total: int, offset: int, size: int
-    ) -> Page[EntityType | BaseModel]:
+        items: list[T | BaseModel], total: int, offset: int, size: int
+    ) -> Page[T | BaseModel]:
         """
         Construct a Page value object containing the items for the current page
         together with pagination metadata derived from the supplied parameters.
 
         Args:
-            items (list[EntityType | BaseModel]): Items belonging to the current page.
+            items (list[T | BaseModel]): Items belonging to the current page.
             total (int): Total number of items available across all pages.
             offset (int): Number of items skipped (offset). This method treats `skip`
                 as an offset (0-based count of items to skip).
             size (int): Number of items per page.
 
         Returns:
-            Page[EntityType | BaseModel]: A Page object containing the items and
+            Page[T | BaseModel]: A Page object containing the items and
             pagination metadata.
 
         Notes:

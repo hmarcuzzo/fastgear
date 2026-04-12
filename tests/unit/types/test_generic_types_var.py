@@ -1,6 +1,7 @@
 import pytest
 
-from fastgear.types.generic_types_var import ColumnsQueryType, EntityType
+from fastgear.common.database.sqlalchemy.types import EntityType
+from fastgear.utils.types import ColumnsQueryType
 from tests.fixtures.types.generic_types_var_fixtures import (
     EntityFixture,
     ModelFixture,

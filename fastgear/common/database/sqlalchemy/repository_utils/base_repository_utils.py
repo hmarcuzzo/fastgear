@@ -18,7 +18,7 @@ from fastgear.common.database.sqlalchemy.repository_utils.statement_constructor 
     StatementConstructor,
 )
 from fastgear.common.database.sqlalchemy.session import SyncSessionType
-from fastgear.types.generic_types_var import EntityType
+from fastgear.common.database.sqlalchemy.types import EntityType
 from fastgear.types.http_exceptions import NotFoundException
 from fastgear.types.update_options import UpdateOptions
 from fastgear.types.update_result import UpdateResult

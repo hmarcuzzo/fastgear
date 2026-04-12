@@ -6,9 +6,9 @@ from pydantic import constr
 from fastgear.constants import regex
 from fastgear.decorators.simple_pagination_decorator import SimplePaginationOptions
 from fastgear.types.custom_pages import custom_page_query, custom_size_query
-from fastgear.types.generic_types_var import ColumnsQueryType, FindAllQueryType, OrderByQueryType
 from fastgear.types.pagination import Pagination
 from fastgear.utils import PaginationUtils
+from fastgear.utils.types import ColumnsQueryType, FindAllQueryType, OrderByQueryType
 
 SearchString = constr(pattern=f"^{regex.ANY_CHAR}:{regex.ANY_CHAR}$")
 SortString = constr(pattern=f"^{regex.ANY_CHAR}:{regex.ORDER_BY_QUERY}")

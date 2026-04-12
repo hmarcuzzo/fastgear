@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from fastgear.common.database.sqlalchemy.base import Base
+from fastgear.common.database.sqlalchemy import Base
 
 
 class _Scalars:

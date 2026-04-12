@@ -5,12 +5,6 @@ from typing import Any, Generic, TypeVar
 from loguru import logger
 from pydantic import BaseModel
 
-from fastgear.common.database.sqlalchemy.repository_utils.base_repository_utils import (
-    BaseRepositoryUtils,
-)
-from fastgear.common.database.sqlalchemy.repository_utils.statement_constructor import (
-    StatementConstructor,
-)
 from fastgear.types.delete_result import DeleteResult
 from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.find_one_options import FindOneOptions
@@ -24,9 +18,6 @@ SessionType = TypeVar("SessionType")
 class AbstractRepository(ABC, Generic[EntityType]):
     def __init__(self, entity: type[EntityType]) -> None:
         self.entity = entity
-        self.statement_constructor = StatementConstructor(entity)
-        self.repo_utils = BaseRepositoryUtils()
-
         self.logger = logger.bind(name=self.__class__.__module__)
 
     @abstractmethod

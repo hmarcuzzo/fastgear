@@ -6,19 +6,21 @@ from sqlalchemy import Select, func, inspect, literal_column, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.sql.dml import Delete, ReturningDelete
 
-from fastgear.common.database.abstract_repository import AbstractRepository
+from fastgear.common.database.sqlalchemy.abstract_alchemy_repository import (
+    AbstractAlchemyRepository,
+)
 from fastgear.common.database.sqlalchemy.session import SyncSessionType
+from fastgear.common.database.sqlalchemy.types import EntityType
 from fastgear.types.delete_result import DeleteResult
 from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.find_one_options import FindOneOptions
-from fastgear.types.generic_types_var import EntityType
 from fastgear.types.http_exceptions import NotFoundException
 from fastgear.types.pagination import Pagination
 from fastgear.types.update_options import UpdateOptions
 from fastgear.types.update_result import UpdateResult
 
 
-class SyncBaseRepository(AbstractRepository[EntityType]):
+class SyncBaseRepository(AbstractAlchemyRepository[EntityType]):
     """Base repository class for handling database operations for a specific entity type.
 
     This class provides methods for creating, reading, updating, and deleting records in the
@@ -100,7 +102,7 @@ class SyncBaseRepository(AbstractRepository[EntityType]):
         select_statement = self.statement_constructor.build_select_statement(search_filter).limit(1)
         result = db.execute(select_statement).scalars().first()
 
-        return result if result else None
+        return result or None
 
     def find_one_or_fail(
         self, search_filter: str | FindOneOptions, db: SyncSessionType = None

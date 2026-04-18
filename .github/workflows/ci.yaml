@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+
+jobs:
+  lint:
+    uses: ./.github/workflows/lint.yaml
+
+  audit:
+    needs: [ lint ]
+    uses: ./.github/workflows/audit.yaml
+
+  tests:
+    needs: [ lint ]
+    uses: ./.github/workflows/tests.yaml
+
+  python-versions:
+    needs: [ lint ]
+    uses: ./.github/workflows/python-versions.yaml

@@ -14,6 +14,8 @@ jobs:
     name: Deploy Documentation
     if: github.event.workflow_run.conclusion == 'success'
     uses: ./.github/workflows/docs.yaml
+    permissions:
+      contents: write
 
   release:
     name: Create GitHub Release

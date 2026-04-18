@@ -1,0 +1,30 @@
+name: CD
+run-name: ${{ github.event.workflow_run.display_title }}
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  docs:
+    name: Deploy Documentation
+    if: github.event.workflow_run.conclusion == 'success'
+    uses: ./.github/workflows/docs.yaml
+
+  release:
+    name: Create GitHub Release
+    if: github.event.workflow_run.conclusion == 'success'
+    uses: ./.github/workflows/release.yaml
+    permissions:
+      contents: write
+
+  publish:
+    name: Publish to PyPI
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    uses: ./.github/workflows/publish.yaml
+    secrets: inherit

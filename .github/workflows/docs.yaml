@@ -3,9 +3,6 @@ name: Deploy Documentation
 on:
   workflow_call:
 
-permissions:
-  contents: write
-
 jobs:
   deploy:
     name: Deploy Docs to GitHub Pages

@@ -70,6 +70,12 @@ Run the following command:
 uv add fastgear
 ```
 
+## FastGear CLI
+
+To make working with FastGear even easier, there is an official CLI tool available:
+
+**[fastgear-cli](https://github.com/hmarcuzzo/fastgear-cli)** — a command-line interface that helps you scaffold and manage FastGear-based projects with less boilerplate.
+
 ## License
 
 This project is licensed under the terms of the MIT license.

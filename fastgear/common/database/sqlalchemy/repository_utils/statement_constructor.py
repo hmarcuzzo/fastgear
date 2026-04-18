@@ -84,7 +84,8 @@ class StatementConstructor:
         for key, value in options_dict.items():
             match key:
                 case "select":
-                    statement = statement.options(load_only(*value, raiseload=True))
+                    if value:
+                        statement = statement.options(load_only(*value, raiseload=True))
                 case "where":
                     statement = statement.where(*value)
                 case "order_by":

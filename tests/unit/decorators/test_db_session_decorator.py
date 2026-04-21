@@ -31,6 +31,49 @@ class TestDbSessionDecorator:
         mock_session.__aexit__.assert_called_once()
         assert db_session.get() is None
 
+    @pytest.mark.it(
+        "✅  Should expose session property returning active session during async execution"
+    )
+    @pytest.mark.asyncio
+    async def test_session_property_async(self):
+        mock_session_factory = MagicMock()
+        mock_session_factory.get_session.return_value = MagicMock()
+        mock_session = mock_session_factory.get_session.return_value
+        mock_session.__aenter__ = AsyncMock(return_value="mock_session")
+        mock_session.__aexit__ = AsyncMock(return_value=None)
+
+        decorator = DBSessionDecorator(mock_session_factory)
+
+        @decorator
+        async def mock_async_function():
+            assert decorator.session == "mock_session"
+            return "success"
+
+        assert decorator.session is None
+        await mock_async_function()
+        assert decorator.session is None
+
+    @pytest.mark.it(
+        "✅  Should expose session property returning active session during sync execution"
+    )
+    def test_session_property_sync(self):
+        mock_session_factory = MagicMock()
+        mock_session_factory.get_session.return_value = MagicMock()
+        mock_session = mock_session_factory.get_session.return_value
+        mock_session.__enter__ = MagicMock(return_value="mock_session")
+        mock_session.__exit__ = MagicMock(return_value=None)
+
+        decorator = DBSessionDecorator(mock_session_factory)
+
+        @decorator
+        def mock_sync_function():
+            assert decorator.session == "mock_session"
+            return "success"
+
+        assert decorator.session is None
+        mock_sync_function()
+        assert decorator.session is None
+
     @pytest.mark.it("✅  Should handle sync function correctly")
     def test_sync_function_handling(self):
         mock_session_factory = MagicMock()

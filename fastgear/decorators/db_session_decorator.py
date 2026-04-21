@@ -4,6 +4,7 @@ from functools import wraps
 from typing import TypeVar
 
 from fastgear.common.database.sqlalchemy.session import (
+    AllSessionType,
     AsyncDatabaseSessionFactory,
     SyncDatabaseSessionFactory,
     db_session,
@@ -17,6 +18,10 @@ class DBSessionDecorator:
         self, session_factory: SyncDatabaseSessionFactory | AsyncDatabaseSessionFactory
     ) -> None:
         self.session_factory = session_factory
+
+    @property
+    def session(self) -> AllSessionType | None:
+        return db_session.get()
 
     def __call__(self, func: T) -> T:
         is_coroutine = inspect.iscoroutinefunction(func)

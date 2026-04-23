@@ -20,7 +20,7 @@ runs:
       shell: bash
       run: |
         SHA="${{ github.event.workflow_run.head_sha }}"
-        COMMIT_MSG=$(git log -1 --pretty=%B "$SHA")
+        COMMIT_MSG=$(git log -1 --pretty=%s "$SHA")
         echo "commit-message=$COMMIT_MSG" >> $GITHUB_OUTPUT
 
         if echo "$COMMIT_MSG" | grep -qF "🔖 Release version"; then

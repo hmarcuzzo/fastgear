@@ -64,3 +64,50 @@ def config_dir_with_duplicate_candidates(temp_config_dir: Path) -> Path:
     (temp_config_dir / "env.toml").touch()
     (temp_config_dir / "env.local.toml").touch()
     return temp_config_dir
+
+
+@pytest.fixture
+def config_dir_with_base_dotenv_files(temp_config_dir: Path) -> Path:
+    temp_config_dir.mkdir(parents=True, exist_ok=True)
+    (temp_config_dir / ".env").touch()
+    (temp_config_dir / ".env.local").touch()
+    return temp_config_dir
+
+
+@pytest.fixture
+def config_dir_with_env_dotenv_files(temp_config_dir: Path) -> Path:
+    temp_config_dir.mkdir(parents=True, exist_ok=True)
+    (temp_config_dir / ".env.dev").touch()
+    (temp_config_dir / ".env.dev.local").touch()
+    (temp_config_dir / ".env.prod").touch()
+    return temp_config_dir
+
+
+@pytest.fixture
+def config_dir_with_all_dotenv_files(temp_config_dir: Path) -> Path:
+    temp_config_dir.mkdir(parents=True, exist_ok=True)
+    (temp_config_dir / ".env").touch()
+    (temp_config_dir / ".env.local").touch()
+    (temp_config_dir / ".env.dev").touch()
+    (temp_config_dir / ".env.dev.local").touch()
+    (temp_config_dir / ".env.prod").touch()
+    (temp_config_dir / ".env.prod.local").touch()
+    return temp_config_dir
+
+
+class DuplicateDotEnvEnum(StrEnum):
+    PLAIN = "plain"
+    LOCAL = "local"
+
+
+@pytest.fixture
+def duplicate_dotenv_enum() -> type[StrEnum]:
+    return DuplicateDotEnvEnum
+
+
+@pytest.fixture
+def config_dir_with_duplicate_dotenv_candidates(temp_config_dir: Path) -> Path:
+    temp_config_dir.mkdir(parents=True, exist_ok=True)
+    (temp_config_dir / ".env").touch()
+    (temp_config_dir / ".env.local").touch()
+    return temp_config_dir

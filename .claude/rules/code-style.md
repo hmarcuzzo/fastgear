@@ -51,10 +51,16 @@ belongs in `types/http_exceptions.py` next to the others, not raised as a raw `H
 
 ## Logging
 
-Log through the library's logger, bound to the module that emits the record
-(`logger.bind(name=self.__class__.__module__)`), never `print`. `LoggerUtils.configure_logging`
-in `utils/logger_utils.py` owns the configuration, so it is the only place that touches the
-logger's sinks or format. `G004` is ignored, so an f-string in a log call is fine.
+Log through `LoggerUtils.get_logger`, named after the module that emits the record
+(`LoggerUtils.get_logger(self.__class__.__module__)`), never `print`. The logger is a
+`structlog` bound logger, so context belongs in keyword arguments (`logger.info("record
+created", record_id=record.id)`) rather than interpolated into the message; `G004` is ignored,
+so an f-string still works where a key/value pair would read worse.
+
+`LoggerUtils.configure_logging` in `utils/logger_utils.py` owns the configuration, so it is the
+only place that touches the processor chain, the renderer or the handlers. It also routes the
+standard library's `logging` through the same pipeline, which is why a third-party logger
+(uvicorn, sqlalchemy) needs no setup of its own.
 
 ## Comments and docstrings
 

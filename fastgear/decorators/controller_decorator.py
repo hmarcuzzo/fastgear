@@ -9,7 +9,7 @@ from typing import (
 
 import pydantic
 from fastapi import APIRouter, Depends
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, iter_route_contexts
 from starlette.routing import Route, WebSocketRoute
 
 PYDANTIC_VERSION = pydantic.VERSION
@@ -110,13 +110,13 @@ def _register_endpoints(router: APIRouter, cls: type[Any], *urls: str) -> None:
         _allocate_routes_by_method_name(router, url, function_members)
 
     router_roles = []
-    for route in router.routes:
-        if not isinstance(route, APIRoute):
+    for route_context in iter_route_contexts(router.routes):
+        if not isinstance(route_context.original_route, APIRoute):
             raise ValueError("The provided routes should be of type APIRoute")
 
-        route_methods: Any = route.methods
+        route_methods: Any = route_context.methods
         cast("tuple[Any]", route_methods)
-        router_roles.append((route.path, tuple(route_methods)))
+        router_roles.append((route_context.path, tuple(route_methods)))
 
     if len(set(router_roles)) != len(router_roles):
         raise Exception("An identical route role has been implemented more then once")
@@ -183,7 +183,9 @@ def _allocate_routes_by_method_name(
     router: APIRouter, url: str, function_members: list[tuple[str, Any]]
 ) -> None:
     existing_routes_endpoints: list[tuple[Any, str]] = [
-        (route.endpoint, route.path) for route in router.routes if isinstance(route, APIRoute)
+        (route_context.endpoint, route_context.path)
+        for route_context in iter_route_contexts(router.routes)
+        if isinstance(route_context.original_route, APIRoute)
     ]
     for name, func in function_members:
         if (

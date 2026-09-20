@@ -1,3 +1,4 @@
+default_install_hook_types: [pre-commit, pre-push]
 default_stages: [pre-commit]
 
 default_language_version:
@@ -6,10 +7,22 @@ default_language_version:
 repos:
   # Run the Ruff linter.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.6
+    rev: v0.16.8
     hooks:
       # Formatter
       - id: ruff-format
       # Linter
       - id: ruff-check
         args: [ --fix ]
+
+  # Run the test suite before pushing.
+  - repo: local
+    hooks:
+      - id: test
+        name: test
+        description: Run all python unit tests
+        entry: uv run --all-extras --group test pytest
+        language: system
+        pass_filenames: false
+        files: (\.py|(^|/)uv\.lock|(^|/)pyproject\.toml)$
+        stages: [pre-push]

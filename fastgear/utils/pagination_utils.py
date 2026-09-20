@@ -2,16 +2,18 @@ import typing
 from math import ceil
 from typing import Any, TypeVar
 
-from loguru import logger
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic.fields import FieldInfo
 
 from fastgear.types.custom_pages import Page
 from fastgear.types.http_exceptions import BadRequestException
 from fastgear.types.pagination import Pagination, PaginationSearch, PaginationSort
+from fastgear.utils.logger_utils import LoggerUtils
 from fastgear.utils.types import ColumnsQueryType, FindAllQueryType, OrderByQueryType
 
 T = TypeVar("T")
+
+logger = LoggerUtils.get_logger(__name__)
 
 
 class PaginationUtils:

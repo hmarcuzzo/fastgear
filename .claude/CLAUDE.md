@@ -11,9 +11,11 @@ with neither installed.
 ## Commands
 
 - `uv sync --all-extras --group test` — install everything the suite needs
-- `uv run pytest` — the whole suite; `addopts` already adds coverage and testdox output
+- `uv run pytest` — the whole suite; `addopts` already adds coverage and testdox output, and the
+  same command runs as a `pre-push` hook
 - `uvx ruff check .` / `uvx ruff format .` — what CI runs; `ruff-check --fix` and `ruff-format`
-  also run on pre-commit (`uv run pre-commit install`)
+  also run on pre-commit (`uv run pre-commit install --hook-type pre-commit --hook-type pre-push`,
+  needed for the `pre-push` stage to be wired up at all)
 - `uv run mkdocs serve -f docs/en/mkdocs.yml` — docs site, generated from docstrings
 
 ## Layout

@@ -12,12 +12,12 @@ from tests.fixtures.utils.base_settings_utils_fixtures import (
     env_enum,
     temp_config_dir,
 )
-from tests.fixtures.utils.logger_fixtures import log_levels, mock_record, mock_record_without_name
+from tests.fixtures.utils.logger_fixtures import log_levels, reset_logging, stdout_capture
 
 __all__ = [
-    "mock_record",
-    "mock_record_without_name",
     "log_levels",
+    "reset_logging",
+    "stdout_capture",
     "env_enum",
     "duplicate_env_enum",
     "duplicate_dotenv_enum",

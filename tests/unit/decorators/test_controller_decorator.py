@@ -2,6 +2,7 @@ from typing import Any, ClassVar
 
 import pytest
 from fastapi import APIRouter, Depends, FastAPI, Request
+from fastapi.routing import iter_route_contexts
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED
 from starlette.testclient import TestClient
 
@@ -135,7 +136,7 @@ class TestControllerDecorator:
         class Controller:
             @router.get("/route")
             def root(self, param: int | None = None) -> int:
-                return param if param else 0
+                return param or 0
 
         app = FastAPI()
         app.include_router(router)
@@ -190,7 +191,9 @@ class TestControllerDecorator:
             def root(self) -> str:
                 return "hello"
 
-        assert router.routes[0].tags == ["test"]
+        routes = list(iter_route_contexts(router.routes))
+        assert len(routes) == 1
+        assert routes[0].tags == ["test"]
 
     @pytest.mark.it("✅  Should include init params when INCLUDE_INIT_PARAMS_KEY is set")
     def test_include_init_params_with_instance(self, router: APIRouter) -> None:
@@ -337,7 +340,7 @@ class TestControllerDecorator:
 
         # Find the route and assert the name is unchanged
         matching = [
-            r for r in router.routes if hasattr(r, "name") and getattr(r, "path", "") == "/prefixed"
+            route for route in iter_route_contexts(router.routes) if route.path == "/prefixed"
         ]
         assert len(matching) == 1
         assert matching[0].name == "Controller.get"
@@ -415,9 +418,7 @@ class TestControllerDecorator:
             def get_all_items(self) -> str:
                 return "items"
 
-        matching = [
-            r for r in router.routes if hasattr(r, "path") and getattr(r, "path", "") == "/items"
-        ]
+        matching = [route for route in iter_route_contexts(router.routes) if route.path == "/items"]
         assert len(matching) == 1
         assert matching[0].summary == "Get All Items"
 
@@ -429,9 +430,7 @@ class TestControllerDecorator:
             def get_users(self) -> str:
                 return "users"
 
-        matching = [
-            r for r in router.routes if hasattr(r, "path") and getattr(r, "path", "") == "/users"
-        ]
+        matching = [route for route in iter_route_contexts(router.routes) if route.path == "/users"]
         assert len(matching) == 1
         assert matching[0].summary == "Custom Summary For Users"
 

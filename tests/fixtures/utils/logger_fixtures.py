@@ -1,38 +1,58 @@
-from datetime import UTC, datetime, timezone
+import io
+import logging
+import sys
+from collections.abc import Callable, Generator
 
 import pytest
+import structlog
+
+
+class _InMemoryStdout(io.StringIO):
+    def __init__(self, *, tty: bool) -> None:
+        super().__init__()
+        self._tty = tty
+
+    def isatty(self) -> bool:
+        return self._tty
+
+
+@pytest.fixture(autouse=True)
+def reset_logging() -> Generator[None]:
+    """Fixture that restores structlog and the root logger to their original state.
+
+    Yields:
+        None.
+    """
+    root_logger = logging.getLogger()
+    original_handlers = root_logger.handlers[:]
+    original_level = root_logger.level
+
+    yield
+
+    structlog.reset_defaults()
+    root_logger.handlers = original_handlers
+    root_logger.setLevel(original_level)
 
 
 @pytest.fixture
-def mock_record() -> dict:
-    """Fixture that provides a basic mock record for logger testing.
+def stdout_capture(monkeypatch: pytest.MonkeyPatch) -> Callable[..., io.StringIO]:
+    """Fixture that provides a factory replacing stdout with an in-memory stream.
+
+    The factory is called from the test body rather than patching on setup because pytest resumes
+    its own capture at the start of the call phase, which would restore `sys.stdout`.
 
     Returns:
-        dict: A mock record with basic fields.
+        Callable[..., io.StringIO]: A factory taking whether the stream reports itself as a
+            terminal and returning the in-memory stream that replaced stdout.
     """
-    return {
-        "time": datetime(2024, 3, 20, 10, 30, 45, 123456, tzinfo=UTC),
-        "extra": {"name": "test_module"},
-        "module": "test_module",
-        "level": type("Level", (), {"name": "INFO"}),
-        "message": "Test message",
-    }
 
+    def _replace_stdout(*, tty: bool = True) -> io.StringIO:
+        stream = _InMemoryStdout(tty=tty)
+        monkeypatch.setattr(sys, "stdout", stream)
 
-@pytest.fixture
-def mock_record_without_name() -> dict:
-    """Fixture that provides a mock record without name in extra.
+        return stream
 
-    Returns:
-        dict: A mock record without name in extra field.
-    """
-    return {
-        "time": datetime(2024, 3, 20, 10, 30, 45, 123456, tzinfo=UTC),
-        "extra": {},
-        "module": "test_module",
-        "level": type("Level", (), {"name": "ERROR"}),
-        "message": "Error message",
-    }
+    return _replace_stdout
 
 
 @pytest.fixture

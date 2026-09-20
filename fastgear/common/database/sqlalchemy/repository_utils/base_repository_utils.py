@@ -1,6 +1,5 @@
 from datetime import UTC, datetime
 
-from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import (
     ColumnElement,
@@ -22,8 +21,9 @@ from fastgear.common.database.sqlalchemy.types import EntityType
 from fastgear.types.http_exceptions import NotFoundException
 from fastgear.types.update_options import UpdateOptions
 from fastgear.types.update_result import UpdateResult
+from fastgear.utils.logger_utils import LoggerUtils
 
-logger.bind(name="BaseRepositoryUtils")
+logger = LoggerUtils.get_logger("BaseRepositoryUtils")
 
 
 class BaseRepositoryUtils:

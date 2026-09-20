@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, Generic, TypeVar
 
-from loguru import logger
 from pydantic import BaseModel
 
 from fastgear.types.delete_result import DeleteResult
@@ -10,6 +9,7 @@ from fastgear.types.find_many_options import FindManyOptions
 from fastgear.types.find_one_options import FindOneOptions
 from fastgear.types.pagination import Pagination
 from fastgear.types.update_result import UpdateResult
+from fastgear.utils.logger_utils import LoggerUtils
 
 EntityType = TypeVar("EntityType")
 SessionType = TypeVar("SessionType")
@@ -18,7 +18,7 @@ SessionType = TypeVar("SessionType")
 class AbstractRepository(ABC, Generic[EntityType]):
     def __init__(self, entity: type[EntityType]) -> None:
         self.entity = entity
-        self.logger = logger.bind(name=self.__class__.__module__)
+        self.logger = LoggerUtils.get_logger(self.__class__.__module__)
 
     @abstractmethod
     def create(self, new_record: EntityType | Any, db: SessionType) -> EntityType:
